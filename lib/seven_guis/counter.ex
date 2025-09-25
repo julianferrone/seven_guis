@@ -9,7 +9,7 @@ defmodule SevenGuis.Counter do
 
   def init([notebook]) do
     panel = :wxPanel.new(notebook)
-    sizer = :wxBoxSizer.new(wxVERTICAL())
+    sizer = :wxBoxSizer.new(wxHORIZONTAL())
     :wxWindow.setSizer(panel, sizer)
 
     count = 0
