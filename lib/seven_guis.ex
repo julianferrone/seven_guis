@@ -20,12 +20,7 @@ defmodule SevenGuis do
     panel = :wxPanel.new(frame, [])
     :wxPanel.connect(panel, :paint, [:callback])
 
-    main_sizer =
-      :wxStaticBoxSizer.new(
-        wxVERTICAL(),
-        panel,
-        label: ~c"wxNotebook"
-      )
+    main_sizer = :wxBoxSizer.new(wxVERTICAL())
 
     notebook_id = System.unique_integer([:positive, :monotonic])
     notebook = :wxNotebook.new(panel, notebook_id, style: wxNB_TOP())
