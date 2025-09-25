@@ -17,46 +17,47 @@ defmodule SevenGuis do
     :wxFrame.connect(frame, :size)
     :wxFrame.connect(frame, :close_window)
 
-    panel = :wxPanel.new(frame, [])
-    :wxPanel.connect(panel, :paint, [:callback])
+    main_panel = :wxPanel.new(frame, [])
+    :wxPanel.connect(main_panel, :paint, [:callback])
 
     main_sizer = :wxBoxSizer.new(wxVERTICAL())
 
     notebook_id = System.unique_integer([:positive, :monotonic])
-    notebook = :wxNotebook.new(panel, notebook_id, style: wxNB_TOP())
+    notebook = :wxNotebook.new(main_panel, notebook_id, style: wxNB_TOP())
 
-    counter_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, counter_tab, "Counter")
+    counter_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, counter_panel, "Counter")
 
-    temperature_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, temperature_tab, "Temperature Converter")
+    temperature_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, temperature_panel, "Temperature Converter")
 
-    flights_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, flights_tab, "Flight Booker")
+    flights_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, flights_panel, "Flight Booker")
 
-    timer_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, timer_tab, "Timer")
+    timer_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, timer_panel, "Timer")
 
-    crud_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, crud_tab, "CRUD")
+    crud_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, crud_panel, "CRUD")
 
-    circle_drawer_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, circle_drawer_tab, "Circle Drawer")
+    circle_drawer_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, circle_drawer_panel, "Circle Drawer")
 
-    cells_tab = :wxPanel.new(notebook)
-    :wxNotebook.addPage(notebook, cells_tab, "Cells")
+    cells_panel = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, cells_panel, "Cells")
 
     :wxSizer.add(main_sizer, notebook, flag: wxEXPAND(), proportion: 1)
-    :wxPanel.setSizer(panel, main_sizer)
+    :wxPanel.setSizer(main_panel, main_sizer)
 
+    :wxWindow.refresh(main_panel)
     :wxFrame.show(frame)
 
-    state = %{panel: panel, frame: frame}
+    state = %{main_panel: main_panel, frame: frame}
     {frame, state}
   end
 
-  def handle_event({:wx, _, _, _, {:wxSize, :size, size, _}}, state = %{panel: panel}) do
-    :wxPanel.setSize(panel, size)
+  def handle_event({:wx, _, _, _, {:wxSize, :size, size, _}}, state = %{main_panel: main_panel}) do
+    :wxPanel.setSize(main_panel, size)
     {:noreply, state}
   end
 
@@ -76,11 +77,11 @@ defmodule SevenGuis do
     {:noreply, state}
   end
 
-  def handle_sync_event({:wx, _, _, _, {:wxPaint, :paint}}, _, state = %{panel: panel}) do
+  def handle_sync_event({:wx, _, _, _, {:wxPaint, :paint}}, _, state = %{main_panel: main_panel}) do
     brush = :wxBrush.new()
     :wxBrush.setColour(brush, {255, 255, 255, 255})
 
-    dc = :wxPaintDC.new(panel)
+    dc = :wxPaintDC.new(main_panel)
     :wxDC.setBackground(dc, brush)
     :wxDC.clear(dc)
     :wxPaintDC.destroy(dc)
