@@ -4,7 +4,7 @@ defmodule SevenGuis do
   # https://gist.github.com/rlipscombe/5f400451706efde62acbbd80700a6b7c
   @behaviour :wx_object
 
-  @title "Canvas Example"
+  @title "Seven GUIs"
   @size {600, 600}
 
   def start_link() do
