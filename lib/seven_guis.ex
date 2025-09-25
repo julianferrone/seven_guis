@@ -25,7 +25,7 @@ defmodule SevenGuis do
     notebook_id = System.unique_integer([:positive, :monotonic])
     notebook = :wxNotebook.new(main_panel, notebook_id, style: wxNB_TOP())
 
-    counter_panel = :wxPanel.new(notebook)
+    counter_panel = SevenGuis.Counter.start_link(notebook)
     :wxNotebook.addPage(notebook, counter_panel, "Counter")
 
     temperature_panel = :wxPanel.new(notebook)

@@ -1,11 +1,27 @@
 defmodule SevenGuis.Counter do
+  use WxEx
+
   @behaviour :wx_object
 
-  def init(args \\ []) do
-    frame = :wxFrame.new()
+  def start_link(notebook) do
+    :wx_object.start_link(__MODULE__, [notebook], [])
+  end
+
+  def init([notebook]) do
+    panel = :wxPanel.new(notebook)
+    sizer = :wxBoxSizer.new(wxVERTICAL())
+    :wxWindow.setSizer(panel, sizer)
 
     button_id = System.unique_integer([:positive, :monotonic])
-    button = :wxButton.new(frame, button_id, label: ~c"Count")
+    button = :wxButton.new(panel, button_id, label: ~c"Count")
+
+    :wxSizer.add(
+      sizer,
+      button,
+      # flag: wxEXPAND(),
+      proportion: 1,
+      border: 5
+    )
 
     count = 0
 
@@ -13,16 +29,25 @@ defmodule SevenGuis.Counter do
 
     text =
       :wxStaticText.new(
-        frame,
+        panel,
         text_id,
-        label: Integer.to_charlist(count)
+        Integer.to_charlist(count)
       )
 
-    state = %{frame: frame, count: count, text: text, button: button}
-    {frame, state}
+    :wxSizer.add(
+      sizer,
+      text,
+      # flag: wxEXPAND(),
+      proportion: 1,
+      border: 5
+    )
+
+    state = %{panel: panel, count: count, text: text, button: button}
+    {panel, state}
   end
 
-  def handle_event({:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}}, state) do
+  def handle_event({:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}=evt}, state) do
+    IO.inspect(evt, label: "Button clicked")
     count = state.count + 1
     :wxStaticText.setLabel(state.text, Integer.to_charlist(count))
     {:noreply, state}
