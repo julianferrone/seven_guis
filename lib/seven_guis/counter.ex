@@ -12,17 +12,6 @@ defmodule SevenGuis.Counter do
     sizer = :wxBoxSizer.new(wxVERTICAL())
     :wxWindow.setSizer(panel, sizer)
 
-    button_id = System.unique_integer([:positive, :monotonic])
-    button = :wxButton.new(panel, button_id, label: ~c"Count")
-
-    :wxSizer.add(
-      sizer,
-      button,
-      # flag: wxEXPAND(),
-      proportion: 1,
-      border: 5
-    )
-
     count = 0
 
     text_id = System.unique_integer([:positive, :monotonic])
@@ -37,6 +26,18 @@ defmodule SevenGuis.Counter do
     :wxSizer.add(
       sizer,
       text,
+      # flag: wxEXPAND(),
+      proportion: 1,
+      border: 5
+    )
+
+    button_id = System.unique_integer([:positive, :monotonic])
+    button = :wxButton.new(panel, button_id, label: ~c"Count")
+    :wxButton.connect(button, :command_button_clicked)
+
+    :wxSizer.add(
+      sizer,
+      button,
       # flag: wxEXPAND(),
       proportion: 1,
       border: 5
