@@ -25,13 +25,26 @@ defmodule SevenGuis do
     notebook_id = System.unique_integer([:positive, :monotonic])
     notebook = :wxNotebook.new(panel, notebook_id, style: wxNB_TOP())
 
-    tab_1 = :wxPanel.new(notebook)
-    # sizer_1 = :wxBoxSizer.new(wxHORIZONTAL())
-    :wxNotebook.addPage(notebook, tab_1, "Tab 1")
+    counter_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, counter_tab, "Counter")
 
-    tab_2 = :wxPanel.new(notebook)
-    # sizer_1 = :wxBoxSizer.new(wxHORIZONTAL())
-    :wxNotebook.addPage(notebook, tab_2, "Tab 2")
+    temperature_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, temperature_tab, "Temperature Converter")
+
+    flights_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, flights_tab, "Flight Booker")
+
+    timer_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, timer_tab, "Timer")
+
+    crud_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, crud_tab, "CRUD")
+
+    circle_drawer_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, circle_drawer_tab, "Circle Drawer")
+
+    cells_tab = :wxPanel.new(notebook)
+    :wxNotebook.addPage(notebook, cells_tab, "Cells")
 
     :wxSizer.add(main_sizer, notebook, flag: wxEXPAND(), proportion: 1)
     :wxPanel.setSizer(panel, main_sizer)
