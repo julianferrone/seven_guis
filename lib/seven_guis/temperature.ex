@@ -63,6 +63,8 @@ defmodule SevenGuis.Temperature do
         style: wxDEFAULT()
       )
 
+    :wxTextCtrl.connect(fahrenheit_input, :command_text_updated)
+
     :wxSizer.add(
       sizer,
       fahrenheit_input,
@@ -125,6 +127,34 @@ defmodule SevenGuis.Temperature do
         :wxWindow.setBackgroundColour(celsius_input, {255, 150, 150})
         :wxWindow.refresh(celsius_input)
         state = %{state | celsius_input: celsius_input}
+        {:noreply, state}
+    end
+  end
+
+  def handle_event(
+        {:wx, fahrenheit_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
+        %{
+          fahrenheit_id: fahrenheit_id,
+          celsius_input: celsius_input,
+          fahrenheit_input: fahrenheit_input
+        } = state
+      ) do
+    text = :wxTextCtrl.getValue(fahrenheit_input)
+    temp = parse_temp(text)
+
+    case temp do
+      {:ok, fahrenheit} ->
+        celsius = f_to_c(fahrenheit)
+        :wxWindow.setBackgroundColour(fahrenheit_input, {255, 255, 255})
+        :wxTextCtrl.setValue(celsius_input, Float.to_charlist(celsius))
+        :wxWindow.refresh(fahrenheit_input)
+        state = %{state | celsius_input: celsius_input, fahrenheit_input: fahrenheit_input}
+        {:noreply, state}
+
+      :error ->
+        :wxWindow.setBackgroundColour(fahrenheit_input, {255, 150, 150})
+        :wxWindow.refresh(fahrenheit_input)
+        state = %{state | fahrenheit_input: fahrenheit_input}
         {:noreply, state}
     end
   end
