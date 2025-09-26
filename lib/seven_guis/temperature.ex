@@ -56,4 +56,19 @@ defmodule SevenGuis.Temperature do
 
   def f_to_c(temp), do: 5 / 9 * (temp - 32)
   def c_to_f(temp), do: 9 / 5 * temp + 32
+
+  def parse_temp(temp) do
+    try do
+      float = String.to_float(temp)
+      {:ok, float}
+    rescue
+      ArgumentError ->
+        try do
+          float = String.to_integer(temp) / 1
+          {:ok, float}
+        rescue
+          ArgumentError -> :error
+        end
+    end
+  end
 end
