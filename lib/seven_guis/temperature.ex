@@ -23,6 +23,8 @@ defmodule SevenGuis.Temperature do
         style: wxDEFAULT()
       )
 
+    :wxTextCtrl.connect(celsius_input, :command_text_updated)
+
     :wxSizer.add(
       sizer,
       celsius_input,
@@ -99,17 +101,40 @@ defmodule SevenGuis.Temperature do
     {panel, state}
   end
 
-  def handle_event({:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}}, state) do
-    count = state.count + 1
-    state = %{state | count: count}
-    :wxStaticText.setLabel(state.text, Integer.to_charlist(count))
-    {:noreply, state}
+  def handle_event(
+        {:wx, celsius_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
+        %{
+          celsius_id: celsius_id,
+          fahrenheit_input: fahrenheit_input,
+          celsius_input: celsius_input
+        } = state
+      ) do
+    text = :wxTextCtrl.getValue(celsius_input)
+    temp = parse_temp(text)
+
+    case temp do
+      {:ok, celsius} ->
+        fahrenheit = c_to_f(celsius)
+        :wxWindow.setBackgroundColour(celsius_input, {255, 255, 255})
+        :wxTextCtrl.setValue(fahrenheit_input, Float.to_charlist(fahrenheit))
+        :wxWindow.refresh(celsius_input)
+        state = %{state | celsius_input: celsius_input, fahrenheit_input: fahrenheit_input}
+        {:noreply, state}
+
+      :error ->
+        :wxWindow.setBackgroundColour(celsius_input, {255, 150, 150})
+        :wxWindow.refresh(celsius_input)
+        state = %{state | celsius_input: celsius_input}
+        {:noreply, state}
+    end
   end
 
   def f_to_c(temp), do: 5 / 9 * (temp - 32)
   def c_to_f(temp), do: 9 / 5 * temp + 32
 
   def parse_temp(temp) do
+    temp = to_string(temp)
+
     try do
       float = String.to_float(temp)
       {:ok, float}
