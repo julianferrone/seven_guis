@@ -12,32 +12,77 @@ defmodule SevenGuis.Temperature do
     sizer = :wxBoxSizer.new(wxHORIZONTAL())
     :wxWindow.setSizer(panel, sizer)
 
-    count = 0
+    # Celsius input
 
-    text_id = System.unique_integer([:positive, :monotonic])
+    celsius_input_id = System.unique_integer([:positive, :monotonic])
 
-    text =
-      :wxStaticText.new(
+    celsius_input =
+      :wxTextCtrl.new(
         panel,
-        text_id,
-        Integer.to_charlist(count)
+        celsius_input_id,
+        style: wxDEFAULT()
       )
 
     :wxSizer.add(
       sizer,
-      text,
+      celsius_input,
       # flag: wxEXPAND(),
       proportion: 1,
       border: 5
     )
 
-    button_id = System.unique_integer([:positive, :monotonic])
-    button = :wxButton.new(panel, button_id, label: ~c"Count")
-    :wxButton.connect(button, :command_button_clicked)
+    # "Celsius =" label
+
+    label_1_id = System.unique_integer([:positive, :monotonic])
+
+    label_1 =
+      :wxStaticText.new(
+        panel,
+        label_1_id,
+        "Celsius = "
+      )
 
     :wxSizer.add(
       sizer,
-      button,
+      label_1,
+      # flag: wxEXPAND(),
+      proportion: 1,
+      border: 5
+    )
+
+    # Fahrenheit input
+
+    fahrenheit_input_id = System.unique_integer([:positive, :monotonic])
+
+    fahrenheit_input =
+      :wxTextCtrl.new(
+        panel,
+        fahrenheit_input_id,
+        style: wxDEFAULT()
+      )
+
+    :wxSizer.add(
+      sizer,
+      fahrenheit_input,
+      # flag: wxEXPAND(),
+      proportion: 1,
+      border: 5
+    )
+
+    # Fahrenheit label
+
+    label_2_id = System.unique_integer([:positive, :monotonic])
+
+    label_2 =
+      :wxStaticText.new(
+        panel,
+        label_2_id,
+        "Fahrenheit"
+      )
+
+    :wxSizer.add(
+      sizer,
+      label_2,
       # flag: wxEXPAND(),
       proportion: 1,
       border: 5
