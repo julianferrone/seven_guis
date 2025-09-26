@@ -3,6 +3,9 @@ defmodule SevenGuis.Temperature do
 
   @behaviour :wx_object
 
+  @white {255, 255, 255}
+  @error_red {255, 150, 150}
+
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
@@ -96,8 +99,10 @@ defmodule SevenGuis.Temperature do
       panel: panel,
       celsius_id: celsius_id,
       celsius_input: celsius_input,
+      celsius_previous: ~c"",
       fahrenheit_id: fahrenheit_id,
-      fahrenheit_input: fahrenheit_input
+      fahrenheit_input: fahrenheit_input,
+      fahrenheit_previous: ~c""
     }
 
     {panel, state}
@@ -107,8 +112,8 @@ defmodule SevenGuis.Temperature do
         {:wx, celsius_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
         %{
           celsius_id: celsius_id,
-          fahrenheit_input: fahrenheit_input,
-          celsius_input: celsius_input
+          celsius_input: celsius_input,
+          fahrenheit_input: fahrenheit_input
         } = state
       ) do
     text = :wxTextCtrl.getValue(celsius_input)
@@ -117,14 +122,14 @@ defmodule SevenGuis.Temperature do
     case temp do
       {:ok, celsius} ->
         fahrenheit = c_to_f(celsius)
-        :wxWindow.setBackgroundColour(celsius_input, {255, 255, 255})
+        :wxWindow.setBackgroundColour(celsius_input, @white)
         :wxTextCtrl.setValue(fahrenheit_input, Float.to_charlist(fahrenheit))
         :wxWindow.refresh(celsius_input)
         state = %{state | celsius_input: celsius_input, fahrenheit_input: fahrenheit_input}
         {:noreply, state}
 
       :error ->
-        :wxWindow.setBackgroundColour(celsius_input, {255, 150, 150})
+        :wxWindow.setBackgroundColour(celsius_input, @error_red)
         :wxWindow.refresh(celsius_input)
         state = %{state | celsius_input: celsius_input}
         {:noreply, state}
@@ -145,14 +150,14 @@ defmodule SevenGuis.Temperature do
     case temp do
       {:ok, fahrenheit} ->
         celsius = f_to_c(fahrenheit)
-        :wxWindow.setBackgroundColour(fahrenheit_input, {255, 255, 255})
+        :wxWindow.setBackgroundColour(fahrenheit_input, @white)
         :wxTextCtrl.setValue(celsius_input, Float.to_charlist(celsius))
         :wxWindow.refresh(fahrenheit_input)
         state = %{state | celsius_input: celsius_input, fahrenheit_input: fahrenheit_input}
         {:noreply, state}
 
       :error ->
-        :wxWindow.setBackgroundColour(fahrenheit_input, {255, 150, 150})
+        :wxWindow.setBackgroundColour(fahrenheit_input, @error_red)
         :wxWindow.refresh(fahrenheit_input)
         state = %{state | fahrenheit_input: fahrenheit_input}
         {:noreply, state}
