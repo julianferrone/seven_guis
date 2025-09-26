@@ -14,12 +14,12 @@ defmodule SevenGuis.Temperature do
 
     # Celsius input
 
-    celsius_input_id = System.unique_integer([:positive, :monotonic])
+    celsius_id = System.unique_integer([:positive, :monotonic])
 
     celsius_input =
       :wxTextCtrl.new(
         panel,
-        celsius_input_id,
+        celsius_id,
         style: wxDEFAULT()
       )
 
@@ -52,12 +52,12 @@ defmodule SevenGuis.Temperature do
 
     # Fahrenheit input
 
-    fahrenheit_input_id = System.unique_integer([:positive, :monotonic])
+    fahrenheit_id = System.unique_integer([:positive, :monotonic])
 
     fahrenheit_input =
       :wxTextCtrl.new(
         panel,
-        fahrenheit_input_id,
+        fahrenheit_id,
         style: wxDEFAULT()
       )
 
