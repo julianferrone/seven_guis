@@ -28,7 +28,7 @@ defmodule SevenGuis do
     counter_panel = SevenGuis.Counter.start_link(notebook)
     :wxNotebook.addPage(notebook, counter_panel, "Counter")
 
-    temperature_panel = :wxPanel.new(notebook)
+    temperature_panel = SevenGuis.Temperature.start_link(notebook)
     :wxNotebook.addPage(notebook, temperature_panel, "Temperature Converter")
 
     flights_panel = :wxPanel.new(notebook)
