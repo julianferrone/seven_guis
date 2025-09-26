@@ -90,7 +90,9 @@ defmodule SevenGuis.Temperature do
 
     state = %{
       panel: panel,
+      celsius_id: celsius_id,
       celsius_input: celsius_input,
+      fahrenheit_id: fahrenheit_id,
       fahrenheit_input: fahrenheit_input
     }
 
