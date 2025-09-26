@@ -88,7 +88,12 @@ defmodule SevenGuis.Temperature do
       border: 5
     )
 
-    state = %{panel: panel, count: count, text: text, button: button}
+    state = %{
+      panel: panel,
+      celsius_input: celsius_input,
+      fahrenheit_input: fahrenheit_input
+    }
+
     {panel, state}
   end
 
