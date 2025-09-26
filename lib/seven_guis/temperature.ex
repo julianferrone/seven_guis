@@ -5,6 +5,7 @@ defmodule SevenGuis.Temperature do
 
   @white {255, 255, 255}
   @error_red {255, 150, 150}
+  @invalid_grey {200, 200, 200}
 
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
@@ -121,6 +122,7 @@ defmodule SevenGuis.Temperature do
       {:ok, celsius} ->
         fahrenheit = c_to_f(celsius)
         :wxTextCtrl.setBackgroundColour(celsius_input, @white)
+        :wxTextCtrl.setBackgroundColour(fahrenheit_input, @white)
         :wxTextCtrl.changeValue(fahrenheit_input, Float.to_charlist(fahrenheit))
         :wxTextCtrl.refresh(celsius_input)
         state = %{state | celsius_input: celsius_input, fahrenheit_input: fahrenheit_input}
@@ -128,6 +130,7 @@ defmodule SevenGuis.Temperature do
 
       :error ->
         :wxTextCtrl.setBackgroundColour(celsius_input, @error_red)
+        :wxTextCtrl.setBackgroundColour(fahrenheit_input, @invalid_grey)
         :wxTextCtrl.refresh(celsius_input)
         state = %{state | celsius_input: celsius_input}
         {:noreply, state}
@@ -148,6 +151,7 @@ defmodule SevenGuis.Temperature do
     case temp do
       {:ok, fahrenheit} ->
         celsius = f_to_c(fahrenheit)
+        :wxTextCtrl.setBackgroundColour(celsius_input, @white)
         :wxTextCtrl.setBackgroundColour(fahrenheit_input, @white)
         :wxTextCtrl.changeValue(celsius_input, Float.to_charlist(celsius))
         :wxWindow.refresh(fahrenheit_input)
@@ -155,6 +159,7 @@ defmodule SevenGuis.Temperature do
         {:noreply, state}
 
       :error ->
+        :wxTextCtrl.setBackgroundColour(celsius_input, @invalid_grey)
         :wxTextCtrl.setBackgroundColour(fahrenheit_input, @error_red)
         :wxTextCtrl.refresh(fahrenheit_input)
         state = %{state | fahrenheit_input: fahrenheit_input}
