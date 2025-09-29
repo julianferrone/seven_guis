@@ -103,17 +103,56 @@ defmodule SevenGuis.FlightBooker do
   def handle_event(
         {:wx, _, _, _, {:wxCommand, :command_choice_selected, choice, _, _}},
         %{
+          panel: panel,
           start_date: start_date,
           return_date: return_date,
           booking_button: booking_button,
-          widget_state: widget_state,
-          data_state: data_state
+          widget_state: widget_state
         } = state
       ) do
     widget_state = %{widget_state | flight_kind: choice}
-    data_state = calculate_constraints(data_state)
+    data_state = calculate_constraints(widget_state)
     state = %{state | widget_state: widget_state, data_state: data_state}
     execute_constraints(start_date, return_date, booking_button, data_state)
+    :wxPanel.refresh(panel)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {:wx, start_date_id, _, _, {:wxCommand, :command_text_updated, start_date_text, _, _}},
+        %{
+          panel: panel,
+          start_date_id: start_date_id,
+          start_date: start_date,
+          return_date: return_date,
+          booking_button: booking_button,
+          widget_state: widget_state
+        } = state
+      ) do
+    widget_state = %{widget_state | start_date_text: start_date_text}
+    data_state = calculate_constraints(widget_state)
+    state = %{state | widget_state: widget_state, data_state: data_state}
+    execute_constraints(start_date, return_date, booking_button, data_state)
+    :wxPanel.refresh(panel)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {:wx, return_date_id, _, _, {:wxCommand, :command_text_updated, return_date_text, _, _}},
+        %{
+          panel: panel,
+          start_date: start_date,
+          return_date_id: return_date_id,
+          return_date: return_date,
+          booking_button: booking_button,
+          widget_state: widget_state
+        } = state
+      ) do
+    widget_state = %{widget_state | return_date_text: return_date_text}
+    data_state = calculate_constraints(widget_state)
+    state = %{state | widget_state: widget_state, data_state: data_state}
+    execute_constraints(start_date, return_date, booking_button, data_state)
+    :wxPanel.refresh(panel)
     {:noreply, state}
   end
 
