@@ -156,6 +156,16 @@ defmodule SevenGuis.FlightBooker do
     {:noreply, state}
   end
 
+  def handle_event(
+        {:wx, booking_button_id, _, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        %{panel: panel, booking_button_id: booking_button_id, widget_state: widget_state} = state
+      ) do
+    msg = flight_booking_message(widget_state)
+    message_dialog = :wxMessageDialog.new(panel, msg)
+    :wxMessageDialog.showModal(message_dialog)
+    {:noreply, state}
+  end
+
   # State for flight booker constraints
   def initialise_state() do
     date = Date.utc_today()
@@ -259,6 +269,20 @@ defmodule SevenGuis.FlightBooker do
       :wxButton.enable(booking_button)
     else
       :wxButton.disable(booking_button)
+    end
+  end
+
+  def flight_booking_message(%{
+        flight_kind: flight_kind,
+        start_date_text: start_date_text,
+        return_date_text: return_date_text
+      }) do
+    case flight_kind do
+      @one_way_flight ->
+        ~c"You have booked a one-way flight for #{start_date_text}."
+
+      @return_flight ->
+        ~c"You have booked a return flight from #{start_date_text} to #{return_date_text}."
     end
   end
 end
