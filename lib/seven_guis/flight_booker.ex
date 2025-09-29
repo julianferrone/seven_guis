@@ -20,7 +20,7 @@ defmodule SevenGuis.FlightBooker do
     :wxWindow.setSizer(panel, sizer)
 
     # FSM
-    {widget_state, data_state} = initialise_state()
+    {widget_state, constraints_state} = initialise_state()
 
     # Checkbox
     flight_choice_id = System.unique_integer([:positive, :monotonic])
@@ -94,7 +94,7 @@ defmodule SevenGuis.FlightBooker do
       booking_button_id: booking_button_id,
       booking_button: booking_button,
       widget_state: widget_state,
-      data_state: data_state
+      constraints_state: constraints_state
     }
 
     {panel, state}
@@ -111,9 +111,9 @@ defmodule SevenGuis.FlightBooker do
         } = state
       ) do
     widget_state = %{widget_state | flight_kind: choice}
-    data_state = calculate_constraints(widget_state)
-    state = %{state | widget_state: widget_state, data_state: data_state}
-    execute_constraints(start_date, return_date, booking_button, data_state)
+    constraints_state = calculate_constraints(widget_state)
+    state = %{state | widget_state: widget_state, constraints_state: constraints_state}
+    execute_constraints(start_date, return_date, booking_button, constraints_state)
     :wxPanel.refresh(panel)
     {:noreply, state}
   end
@@ -130,9 +130,9 @@ defmodule SevenGuis.FlightBooker do
         } = state
       ) do
     widget_state = %{widget_state | start_date_text: start_date_text}
-    data_state = calculate_constraints(widget_state)
-    state = %{state | widget_state: widget_state, data_state: data_state}
-    execute_constraints(start_date, return_date, booking_button, data_state)
+    constraints_state = calculate_constraints(widget_state)
+    state = %{state | widget_state: widget_state, constraints_state: constraints_state}
+    execute_constraints(start_date, return_date, booking_button, constraints_state)
     :wxPanel.refresh(panel)
     {:noreply, state}
   end
@@ -149,9 +149,9 @@ defmodule SevenGuis.FlightBooker do
         } = state
       ) do
     widget_state = %{widget_state | return_date_text: return_date_text}
-    data_state = calculate_constraints(widget_state)
-    state = %{state | widget_state: widget_state, data_state: data_state}
-    execute_constraints(start_date, return_date, booking_button, data_state)
+    constraints_state = calculate_constraints(widget_state)
+    state = %{state | widget_state: widget_state, constraints_state: constraints_state}
+    execute_constraints(start_date, return_date, booking_button, constraints_state)
     :wxPanel.refresh(panel)
     {:noreply, state}
   end
@@ -167,7 +167,7 @@ defmodule SevenGuis.FlightBooker do
       return_date_text: date_text
     }
 
-    data_state = %{
+    constraints_state = %{
       start_date: date,
       # :valid | :invalid
       start_date_validity: :valid,
@@ -178,7 +178,7 @@ defmodule SevenGuis.FlightBooker do
       booking_enabled: true
     }
 
-    {widget_state, data_state}
+    {widget_state, constraints_state}
   end
 
   def calculate_constraints(%{
