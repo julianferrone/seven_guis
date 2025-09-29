@@ -32,6 +32,7 @@ defmodule SevenGuis.FlightBooker do
         choices: [@one_way_flight, @return_flight]
       )
 
+    :wxChoice.setStringSelection(flight_choice, @one_way_flight)
     :wxChoice.connect(flight_choice, :command_choice_selected)
 
     :wxSizer.add(
@@ -82,6 +83,9 @@ defmodule SevenGuis.FlightBooker do
       proportion: 0,
       border: 5
     )
+
+    # Initialise GUI with defaults
+    execute_constraints(start_date, return_date, booking_button, constraints_state)
 
     state = %{
       panel: panel,
@@ -161,7 +165,7 @@ defmodule SevenGuis.FlightBooker do
         %{panel: panel, booking_button_id: booking_button_id, widget_state: widget_state} = state
       ) do
     msg = flight_booking_message(widget_state)
-    message_dialog = :wxMessageDialog.new(panel, msg)
+    message_dialog = :wxMessageDialog.new(panel, msg, caption: ~c"Booked Flight")
     :wxMessageDialog.showModal(message_dialog)
     {:noreply, state}
   end
