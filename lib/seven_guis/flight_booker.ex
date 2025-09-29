@@ -5,6 +5,7 @@ defmodule SevenGuis.FlightBooker do
 
   @white {255, 255, 255}
   @error_red {255, 150, 150}
+  @invalid_grey {200, 200, 200}
 
   @one_way_flight ~c"one-way flight"
   @return_flight ~c"return flight"
@@ -25,8 +26,10 @@ defmodule SevenGuis.FlightBooker do
       :wxComboBox.new(
         panel,
         flight_option_id,
-        choices: [@one_way, @return_flight]
+        choices: [@one_way_flight, @return_flight]
       )
+
+    :wxComboBox.connect(flight_option, :command_combobox_selected)
 
     :wxSizer.add(
       sizer,
@@ -73,12 +76,22 @@ defmodule SevenGuis.FlightBooker do
     {panel, state}
   end
 
-  # def handle_event(
-  #       {:wx, start_date_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
-  #       %{start_date_id: start_date_id} = state
-  #     ) do
-  #   text = :wxTextCtrl.getValue(state.start_date)
-  #   temp = Date.from_iso8601(text)
+  def handle_event(
+        {:wx, _, _, _, {:wxCommand, :command_combobox_selected, _, _, _}},
+        %{flight_option: flight_option, return_date: return_date} = state
+      ) do
+    option = :wxComboBox.getValue(flight_option)
 
-  # end
+    case option do
+      @one_way_flight ->
+        :wxTextCtrl.setEditable(return_date, false)
+        :wxTextCtrl.setBackgroundColour(return_date, @invalid_grey)
+
+      @return_flight ->
+        :wxTextCtrl.setEditable(return_date, true)
+        :wxTextCtrl.setBackgroundColour(return_date, @white)
+    end
+
+    {:noreply, state}
+  end
 end
