@@ -70,6 +70,19 @@ defmodule SevenGuis.FlightBooker do
       border: 5
     )
 
+    # Booking button
+    booking_button_id = System.unique_integer([:positive, :monotonic])
+    booking_button = :wxButton.new(panel, booking_button_id, label: ~c"Book")
+    :wxTextCtrl.connect(booking_button, :command_button_clicked)
+
+    :wxSizer.add(
+      sizer,
+      booking_button,
+      # flag: wxEXPAND(),
+      proportion: 0,
+      border: 5
+    )
+
     state = %{
       panel: panel,
       flight_choice_id: flight_choice_id,
@@ -78,6 +91,8 @@ defmodule SevenGuis.FlightBooker do
       start_date: start_date,
       return_date_id: return_date_id,
       return_date: return_date,
+      booking_button_id: booking_button_id,
+      booking_button: booking_button,
       widget_state: widget_state,
       data_state: data_state
     }
