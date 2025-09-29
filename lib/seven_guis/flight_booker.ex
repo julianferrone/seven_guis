@@ -6,6 +6,9 @@ defmodule SevenGuis.FlightBooker do
   @white {255, 255, 255}
   @error_red {255, 150, 150}
 
+  @one_way_flight ~c"one-way flight"
+  @return_flight ~c"return flight"
+
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
@@ -22,7 +25,7 @@ defmodule SevenGuis.FlightBooker do
       :wxComboBox.new(
         panel,
         flight_option_id,
-        choices: [~c"one-way flight", ~c"return flight"]
+        choices: [@one_way, @return_flight]
       )
 
     :wxSizer.add(
