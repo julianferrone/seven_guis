@@ -96,19 +96,30 @@ defmodule SevenGuis.FlightBooker do
   end
 
   # Finite state machine for flight booker constraints
+  def fsm_new() do
+    date = Date.utc_today()
+    date_text = Date.to_string(date) |> String.to_charlist()
+
+    %{
+      flight_kind: @one_way_flight,
+      start_date: date,
+      start_date_text: date_text,
+      # :valid | :invalid
+      start_date_validity: :valid,
+      return_date: date,
+      return_date_text: date_text,
+      # :disabled | :valid | :invalid
+      return_date_validity: :disabled,
+      # true | false
+      booking_enabled: true
+    }
+  end
+
   def next_step(
         %{
           flight_kind: flight_kind,
-          start_date: start_date,
           start_date_text: start_date_text,
-          # :valid | :invalid
-          start_date_validity: start_date_validity,
-          return_date: return_date,
           return_date_text: return_date_text,
-          # :disabled | :valid | :invalid
-          return_date_validity: return_date_validity,
-          # true | false
-          booking_enabled: booking_enabled
         } = data_state
       ) do
     # Only enable return date iff choice is "return flight"
