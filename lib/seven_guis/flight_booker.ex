@@ -20,7 +20,7 @@ defmodule SevenGuis.FlightBooker do
     :wxWindow.setSizer(panel, sizer)
 
     # FSM
-    data_state = fsm_new()
+    {widget_state, data_state} = fsm_new()
 
     # Checkbox
     flight_choice_id = System.unique_integer([:positive, :monotonic])
@@ -46,7 +46,8 @@ defmodule SevenGuis.FlightBooker do
     start_date_id = System.unique_integer([:positive, :monotonic])
     start_date = :wxTextCtrl.new(panel, start_date_id)
     :wxTextCtrl.connect(start_date, :command_text_updated)
-    :wxTextCtrl.changeValue(start_date, data_state.start_date_text)
+    :wxTextCtrl.changeValue(start_date, widget_state.start_date_text)
+
     :wxSizer.add(
       sizer,
       start_date,
@@ -59,7 +60,8 @@ defmodule SevenGuis.FlightBooker do
     return_date_id = System.unique_integer([:positive, :monotonic])
     return_date = :wxTextCtrl.new(panel, return_date_id)
     :wxTextCtrl.connect(return_date, :command_text_updated)
-    :wxTextCtrl.changeValue(return_date, data_state.return_date_text)
+    :wxTextCtrl.changeValue(return_date, widget_state.return_date_text)
+
     :wxSizer.add(
       sizer,
       return_date,
@@ -76,6 +78,7 @@ defmodule SevenGuis.FlightBooker do
       start_date: start_date,
       return_date_id: return_date_id,
       return_date: return_date,
+      widget_state: widget_state,
       data_state: data_state
     }
 
@@ -104,28 +107,31 @@ defmodule SevenGuis.FlightBooker do
     date = Date.utc_today()
     date_text = Date.to_string(date) |> String.to_charlist()
 
-    %{
+    widget_state = %{
       flight_kind: @one_way_flight,
-      start_date: date,
       start_date_text: date_text,
+      return_date_text: date_text
+    }
+
+    data_state = %{
+      start_date: date,
       # :valid | :invalid
       start_date_validity: :valid,
       return_date: date,
-      return_date_text: date_text,
       # :disabled | :valid | :invalid
       return_date_validity: :disabled,
       # true | false
       booking_enabled: true
     }
+
+    {widget_state, data_state}
   end
 
-  def next_step(
-        %{
-          flight_kind: flight_kind,
-          start_date_text: start_date_text,
-          return_date_text: return_date_text,
-        } = data_state
-      ) do
+  def calculate_constraints(%{
+        flight_kind: flight_kind,
+        start_date_text: start_date_text,
+        return_date_text: return_date_text
+      }) do
     # Only enable return date iff choice is "return flight"
     return_date_validity =
       case flight_kind do
@@ -158,12 +164,11 @@ defmodule SevenGuis.FlightBooker do
       start_date_validity == :valid && return_date_validity in [:disabled, :valid] && flight_valid
 
     %{
-      data_state
-      | start_date_validity: start_date_validity,
-        start_date: start_date,
-        return_date_validity: return_date_validity,
-        return_date: return_date,
-        booking_enabled: booking_enabled
+      start_date_validity: start_date_validity,
+      start_date: start_date,
+      return_date_validity: return_date_validity,
+      return_date: return_date,
+      booking_enabled: booking_enabled
     }
   end
 end
