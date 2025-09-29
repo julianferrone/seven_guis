@@ -1,21 +1,23 @@
 # SevenGuis
 
-**TODO: Add description**
+This is an implementation in Elixir of the [7 GUIs](https://eugenkiss.github.io/7guis/tasks/) benchmark, using the Erlang module `:wx` to provide native GUI bindings.
 
-## Installation
+These aren't the prettiest GUI implementations, as I'm not aiming to produce polished designs -- this is an exercise in practicing building native GUI apps in Elixir.
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `seven_guis` to your list of dependencies in `mix.exs`:
+## Roadmap
 
-```elixir
-def deps do
-  [
-    {:seven_guis, "~> 0.1.0"}
-  ]
-end
-```
+- [x] Counter
+- [x] Temperature Converter
+- [x] Flight Booker
+- [ ] Timer
+- [ ] CRUD
+- [ ] Circle Drawer
+- [ ] Cells
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/seven_guis>.
+## In Action
 
+### Counter
+
+### Temperature Converter
+
+### Flight Booker
