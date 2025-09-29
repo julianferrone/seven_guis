@@ -20,20 +20,20 @@ defmodule SevenGuis.FlightBooker do
     :wxWindow.setSizer(panel, sizer)
 
     # Checkbox
-    flight_option_id = System.unique_integer([:positive, :monotonic])
+    flight_choice_id = System.unique_integer([:positive, :monotonic])
 
-    flight_option =
-      :wxComboBox.new(
+    flight_choice =
+      :wxChoice.new(
         panel,
-        flight_option_id,
+        flight_choice_id,
         choices: [@one_way_flight, @return_flight]
       )
 
-    :wxComboBox.connect(flight_option, :command_combobox_selected)
+    :wxChoice.connect(flight_choice, :command_choice_selected)
 
     :wxSizer.add(
       sizer,
-      flight_option,
+      flight_choice,
       # flag: wxEXPAND(),
       proportion: 0,
       border: 5
@@ -65,8 +65,8 @@ defmodule SevenGuis.FlightBooker do
 
     state = %{
       panel: panel,
-      flight_option_id: flight_option_id,
-      flight_option: flight_option,
+      flight_choice_id: flight_choice_id,
+      flight_choice: flight_choice,
       start_date_id: start_date_id,
       start_date: start_date,
       return_date_id: return_date_id,
@@ -77,12 +77,10 @@ defmodule SevenGuis.FlightBooker do
   end
 
   def handle_event(
-        {:wx, _, _, _, {:wxCommand, :command_combobox_selected, _, _, _}},
-        %{flight_option: flight_option, return_date: return_date} = state
+        {:wx, _, _, _, {:wxCommand, :command_choice_selected, choice, _, _}},
+        %{return_date: return_date} = state
       ) do
-    option = :wxComboBox.getValue(flight_option)
-
-    case option do
+    case choice do
       @one_way_flight ->
         :wxTextCtrl.setEditable(return_date, false)
         :wxTextCtrl.setBackgroundColour(return_date, @invalid_grey)
