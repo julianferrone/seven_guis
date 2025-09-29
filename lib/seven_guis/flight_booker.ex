@@ -19,6 +19,9 @@ defmodule SevenGuis.FlightBooker do
     sizer = :wxBoxSizer.new(wxVERTICAL())
     :wxWindow.setSizer(panel, sizer)
 
+    # FSM
+    data_state = fsm_new()
+
     # Checkbox
     flight_choice_id = System.unique_integer([:positive, :monotonic])
 
@@ -43,7 +46,7 @@ defmodule SevenGuis.FlightBooker do
     start_date_id = System.unique_integer([:positive, :monotonic])
     start_date = :wxTextCtrl.new(panel, start_date_id)
     :wxTextCtrl.connect(start_date, :command_text_updated)
-
+    :wxTextCtrl.changeValue(start_date, data_state.start_date_text)
     :wxSizer.add(
       sizer,
       start_date,
@@ -56,7 +59,7 @@ defmodule SevenGuis.FlightBooker do
     return_date_id = System.unique_integer([:positive, :monotonic])
     return_date = :wxTextCtrl.new(panel, return_date_id)
     :wxTextCtrl.connect(return_date, :command_text_updated)
-
+    :wxTextCtrl.changeValue(return_date, data_state.return_date_text)
     :wxSizer.add(
       sizer,
       return_date,
@@ -72,7 +75,8 @@ defmodule SevenGuis.FlightBooker do
       start_date_id: start_date_id,
       start_date: start_date,
       return_date_id: return_date_id,
-      return_date: return_date
+      return_date: return_date,
+      data_state: data_state
     }
 
     {panel, state}
