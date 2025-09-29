@@ -154,7 +154,7 @@ defmodule SevenGuis.FlightBooker do
         @return_flight -> :enabled
       end
 
-    parsed_start_date = Date.from_iso8601(start_date_text)
+    parsed_start_date = start_date_text |> to_string() |> Date.from_iso8601()
 
     {start_date_validity, start_date} =
       case parsed_start_date do
@@ -162,7 +162,7 @@ defmodule SevenGuis.FlightBooker do
         {:error, _} -> {:invalid, :error}
       end
 
-    parsed_return_date = Date.from_iso8601(return_date_text)
+    parsed_return_date = return_date_text |> to_string() |> Date.from_iso8601()
 
     {return_date_validity, return_date} =
       case {return_date_validity, parsed_return_date} do
