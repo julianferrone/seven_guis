@@ -136,7 +136,7 @@ defmodule SevenGuis.FlightBooker do
       end
 
     # Check if return date is strictly after start date in case of return flights
-    flight_valid = return_date == @one_way_flight || return_date >= start_date
+    flight_valid = flight_kind == @one_way_flight || return_date >= start_date
 
     # When a non-disabled textfield has an ill-formatted date, it should disable the button
     booking_enabled =
