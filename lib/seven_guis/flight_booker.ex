@@ -42,6 +42,7 @@ defmodule SevenGuis.FlightBooker do
     # Start date
     start_date_id = System.unique_integer([:positive, :monotonic])
     start_date = :wxTextCtrl.new(panel, start_date_id)
+    :wxTextCtrl.connect(start_date, :command_text_updated)
 
     :wxSizer.add(
       sizer,
@@ -54,6 +55,7 @@ defmodule SevenGuis.FlightBooker do
     # Return date
     return_date_id = System.unique_integer([:positive, :monotonic])
     return_date = :wxTextCtrl.new(panel, return_date_id)
+    :wxTextCtrl.connect(return_date, :command_text_updated)
 
     :wxSizer.add(
       sizer,
@@ -91,5 +93,62 @@ defmodule SevenGuis.FlightBooker do
     end
 
     {:noreply, state}
+  end
+
+  # Finite state machine for flight booker constraints
+  def next_step(
+        %{
+          flight_kind: flight_kind,
+          start_date: start_date,
+          start_date_text: start_date_text,
+          # :valid | :invalid
+          start_date_validity: start_date_validity,
+          return_date: return_date,
+          return_date_text: return_date_text,
+          # :disabled | :valid | :invalid
+          return_date_validity: return_date_validity,
+          # true | false
+          booking_enabled: booking_enabled
+        } = data_state
+      ) do
+    # Only enable return date iff choice is "return flight"
+    return_date_validity =
+      case flight_kind do
+        @one_way_flight -> :disabled
+        @return_flight -> :enabled
+      end
+
+    parsed_start_date = Date.from_iso8601(start_date_text)
+
+    {start_date_validity, start_date} =
+      case parsed_start_date do
+        {:ok, start_date} -> {:valid, start_date}
+        {:error, _} -> {:invalid, :error}
+      end
+
+    parsed_return_date = Date.from_iso8601(return_date_text)
+
+    {return_date_validity, return_date} =
+      case {return_date_validity, parsed_return_date} do
+        {:disabled, _} -> {:disabled, :error}
+        {:enabled, {:ok, return_date}} -> {:valid, return_date}
+        {:enabled, {:error, _}} -> {:invalid, :error}
+      end
+
+    # Check if return date is strictly after start date in case of return flights
+    flight_valid = return_date == @one_way_flight || return_date >= start_date
+
+    # When a non-disabled textfield has an ill-formatted date, it should disable the button
+    booking_enabled =
+      start_date_validity == :valid && return_date_validity in [:disabled, :valid] && flight_valid
+
+    %{
+      data_state
+      | start_date_validity: start_date_validity,
+        start_date: start_date,
+        return_date_validity: return_date_validity,
+        return_date: return_date,
+        booking_enabled: booking_enabled
+    }
   end
 end
