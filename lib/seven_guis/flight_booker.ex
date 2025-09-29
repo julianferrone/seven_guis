@@ -204,15 +204,15 @@ defmodule SevenGuis.FlightBooker do
 
     case return_date_validity do
       :valid ->
-        :wxTextCtrl.setBackgroundColour(start_date, @white)
+        :wxTextCtrl.setBackgroundColour(return_date, @white)
         :wxTextCtrl.setEditable(return_date, true)
 
       :invalid ->
-        :wxTextCtrl.setBackgroundColour(start_date, @error_red)
+        :wxTextCtrl.setBackgroundColour(return_date, @error_red)
         :wxTextCtrl.setEditable(return_date, true)
 
       :disabled ->
-        :wxTextCtrl.setBackgroundColour(start_date, @invalid_grey)
+        :wxTextCtrl.setBackgroundColour(return_date, @invalid_grey)
         :wxTextCtrl.setEditable(return_date, false)
     end
 
