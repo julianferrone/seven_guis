@@ -20,7 +20,7 @@ defmodule SevenGuis.FlightBooker do
     :wxWindow.setSizer(panel, sizer)
 
     # FSM
-    {widget_state, data_state} = fsm_new()
+    {widget_state, data_state} = initialise_state()
 
     # Checkbox
     flight_choice_id = System.unique_integer([:positive, :monotonic])
@@ -87,23 +87,23 @@ defmodule SevenGuis.FlightBooker do
 
   def handle_event(
         {:wx, _, _, _, {:wxCommand, :command_choice_selected, choice, _, _}},
-        %{return_date: return_date} = state
+        %{
+          start_date: start_date,
+          return_date: return_date,
+          booking_button: booking_button,
+          widget_state: widget_state,
+          data_state: data_state
+        } = state
       ) do
-    case choice do
-      @one_way_flight ->
-        :wxTextCtrl.setEditable(return_date, false)
-        :wxTextCtrl.setBackgroundColour(return_date, @invalid_grey)
-
-      @return_flight ->
-        :wxTextCtrl.setEditable(return_date, true)
-        :wxTextCtrl.setBackgroundColour(return_date, @white)
-    end
-
+    widget_state = %{widget_state | flight_kind: choice}
+    data_state = calculate_constraints(data_state)
+    state = %{state | widget_state: widget_state, data_state: data_state}
+    execute_constraints(start_date, return_date, booking_button, data_state)
     {:noreply, state}
   end
 
-  # Finite state machine for flight booker constraints
-  def fsm_new() do
+  # State for flight booker constraints
+  def initialise_state() do
     date = Date.utc_today()
     date_text = Date.to_string(date) |> String.to_charlist()
 
