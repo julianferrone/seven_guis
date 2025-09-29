@@ -18,6 +18,12 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 
 ### Counter
 
+![Seven GUIs in Elixir - Counter](https://github.com/user-attachments/assets/a4f3adc8-e30c-4d09-b9d8-835bf96b15ac)
+
 ### Temperature Converter
 
+![Seven GUIs in Elixir - Temperature Converter](https://github.com/user-attachments/assets/a8f7cb1e-feec-44e2-b93b-adc244835d92)
+
 ### Flight Booker
+
+![Seven GUIs in Elixir - Flight Booker](https://github.com/user-attachments/assets/ca0455c1-d948-4451-9e02-989d1b4a703c)
