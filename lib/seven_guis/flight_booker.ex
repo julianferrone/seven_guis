@@ -171,4 +171,40 @@ defmodule SevenGuis.FlightBooker do
       booking_enabled: booking_enabled
     }
   end
+
+  def execute_constraints(
+        start_date,
+        return_date,
+        booking_button,
+        %{
+          start_date_validity: start_date_validity,
+          return_date_validity: return_date_validity,
+          booking_enabled: booking_enabled
+        }
+      ) do
+    case start_date_validity do
+      :valid -> :wxTextCtrl.setBackgroundColour(start_date, @white)
+      :invalid -> :wxTextCtrl.setBackgroundColour(start_date, @error_red)
+    end
+
+    case return_date_validity do
+      :valid ->
+        :wxTextCtrl.setBackgroundColour(start_date, @white)
+        :wxTextCtrl.setEditable(return_date, true)
+
+      :invalid ->
+        :wxTextCtrl.setBackgroundColour(start_date, @error_red)
+        :wxTextCtrl.setEditable(return_date, true)
+
+      :disabled ->
+        :wxTextCtrl.setBackgroundColour(start_date, @invalid_grey)
+        :wxTextCtrl.setEditable(return_date, false)
+    end
+
+    if booking_enabled do
+      :wxButton.enable(booking_button)
+    else
+      :wxButton.disable(booking_button)
+    end
+  end
 end
