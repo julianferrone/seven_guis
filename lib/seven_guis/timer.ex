@@ -58,7 +58,7 @@ defmodule SevenGuis.Timer do
       :wxStaticText.new(
         panel,
         elapsed_time_label_id,
-        ~c"0.0"
+        ~c"0.0s"
       )
 
     :wxGridBagSizer.add(
@@ -100,6 +100,8 @@ defmodule SevenGuis.Timer do
       flag: wxEXPAND()
     )
 
+    :wxSlider.connect(duration_slider, :command_slider_updated)
+
     # Duration time label
     duration_time_label_id = System.unique_integer([:positive, :monotonic])
 
@@ -107,7 +109,7 @@ defmodule SevenGuis.Timer do
       :wxStaticText.new(
         panel,
         duration_time_label_id,
-        ~c"10.0"
+        ~c"10.0s"
       )
 
     :wxGridBagSizer.add(
@@ -147,5 +149,21 @@ defmodule SevenGuis.Timer do
 
     :wxPanel.refresh(panel)
     {panel, state}
+  end
+
+  def handle_event(
+        {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, duration_value, _}},
+        %{
+          duration_time_label: duration_time_label
+        } = state
+      ) do
+
+    duration_text = duration_value_to_text(duration_value)
+    :wxStaticText.setLabel(duration_time_label, duration_text)
+    {:noreply, state}
+  end
+
+  def duration_value_to_text(duration) do
+    ~c"#{duration / 10.0}s"
   end
 end
