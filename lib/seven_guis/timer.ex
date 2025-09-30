@@ -189,30 +189,32 @@ defmodule SevenGuis.Timer do
           prev_tick_time: prev_tick_time
         } = state
       ) do
-    IO.inspect("---")
-
     current_tick_time =
       DateTime.utc_now()
-      |> IO.inspect(label: "current_tick_time")
+
+    # |> IO.inspect(label: "current_tick_time")
 
     prev_gauge_value =
       :wxGauge.getValue(elapsed_time_gauge)
-      |> IO.inspect(label: "prev_gauge_value")
+
+    # |> IO.inspect(label: "prev_gauge_value")
 
     delta_time =
       DateTime.diff(current_tick_time, prev_tick_time, :millisecond)
-      |> IO.inspect(label: "delta_time")
+
+    # |> IO.inspect(label: "delta_time")
 
     elapsed =
       min(prev_gauge_value + delta_time, duration_to_elapsed(duration))
-      |> IO.inspect(label: "elapsed")
+
+    # |> IO.inspect(label: "elapsed")
 
     if elapsed_to_seconds(elapsed) < duration_to_seconds(duration) do
       Process.send_after(self(), :tick, @tick_period)
     end
 
     :wxGauge.getRange(elapsed_time_gauge)
-    |> IO.inspect(label: "elapsed_time_gauge range")
+    # |> IO.inspect(label: "elapsed_time_gauge range")
 
     :wxGauge.setValue(elapsed_time_gauge, elapsed)
     :wxStaticText.setLabel(elapsed_time_label, elapsed_value_to_text(elapsed))
