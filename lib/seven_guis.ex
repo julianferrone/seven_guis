@@ -11,14 +11,13 @@ defmodule SevenGuis do
     :wx_object.start_link(__MODULE__, [], [])
   end
 
-  def init(args \\ []) do
+  def init(_args \\ []) do
     wx = :wx.new()
     frame = :wxFrame.new(wx, -1, @title, size: @size)
     :wxFrame.connect(frame, :size)
     :wxFrame.connect(frame, :close_window)
 
     main_panel = :wxPanel.new(frame, [])
-    :wxPanel.connect(main_panel, :paint, [:callback])
 
     main_sizer = :wxBoxSizer.new(wxVERTICAL())
 
@@ -65,26 +64,8 @@ defmodule SevenGuis do
     {:stop, :normal, state}
   end
 
-  def handle_event({:wx, _, ref, _, {:wxCommand, :command_button_clicked, _, _, _}}, state) do
-    # :wxButton.destroy(ref)
-    text_line = :wxTextCtrl.getLineText(state.text, 0)
-    :wxButton.setLabel(state.button, text_line)
-    {:noreply, state}
-  end
-
   def handle_event({:wx, _, _, _, evt}, state) do
     IO.inspect(evt, label: "Event")
     {:noreply, state}
-  end
-
-  def handle_sync_event({:wx, _, _, _, {:wxPaint, :paint}}, _, state = %{main_panel: main_panel}) do
-    brush = :wxBrush.new()
-    :wxBrush.setColour(brush, {255, 255, 255, 255})
-
-    dc = :wxPaintDC.new(main_panel)
-    :wxDC.setBackground(dc, brush)
-    :wxDC.clear(dc)
-    :wxPaintDC.destroy(dc)
-    :ok
   end
 end
