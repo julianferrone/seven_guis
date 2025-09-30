@@ -34,7 +34,7 @@ defmodule SevenGuis do
     flights_panel = SevenGuis.FlightBooker.start_link(notebook)
     :wxNotebook.addPage(notebook, flights_panel, "Flight Booker")
 
-    timer_panel = :wxPanel.new(notebook)
+    timer_panel = SevenGuis.Timer.start_link(notebook)
     :wxNotebook.addPage(notebook, timer_panel, "Timer")
 
     crud_panel = :wxPanel.new(notebook)
