@@ -132,6 +132,8 @@ defmodule SevenGuis.Timer do
         label: ~c"Reset"
       )
 
+    :wxButton.connect(reset_button, :command_button_clicked)
+
     :wxGridBagSizer.add(
       flex_grid_sizer,
       reset_button,
@@ -159,6 +161,28 @@ defmodule SevenGuis.Timer do
   end
 
   def handle_event(
+        {:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        %{
+          elapsed_time_gauge: elapsed_time_gauge,
+          elapsed_time_label: elapsed_time_label
+        } = state
+      ) do
+    reset_elapsed = 0
+
+    # Update elapsed time label to 0
+    elapsed_text = elapsed_value_to_text(reset_elapsed)
+    :wxStaticText.setLabel(elapsed_time_label, elapsed_text)
+
+    # Update gauge range
+    :wxGauge.setValue(elapsed_time_gauge, reset_elapsed)
+
+    current_tick_time = DateTime.utc_now()
+    state = %{state | elapsed: reset_elapsed, prev_tick_time: current_tick_time}
+    send(self(), :tick)
+    {:noreply, state}
+  end
+
+  def handle_event(
         {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, duration_value, _}},
         %{
           duration_time_label: duration_time_label,
@@ -183,7 +207,6 @@ defmodule SevenGuis.Timer do
         :tick,
         %{
           duration: duration,
-          elapsed: elapsed,
           elapsed_time_gauge: elapsed_time_gauge,
           elapsed_time_label: elapsed_time_label,
           prev_tick_time: prev_tick_time
@@ -228,6 +251,8 @@ defmodule SevenGuis.Timer do
     {:noreply, state}
   end
 
+  # Helper methods for dealing with duration (in millisecond) and elapsed (decisecond)
+  # values
   def duration_value_to_text(duration) do
     ~c"#{duration / 10.0}s"
   end
