@@ -138,7 +138,11 @@ defmodule SevenGuis.Timer do
     state = %{
       prev_tick_time: prev_tick_time,
       gauge_range: gauge_range,
-      elapsed_time_gauge: elapsed_time_gauge
+      elapsed_time_gauge: elapsed_time_gauge,
+      elapsed_time_label: elapsed_time_label,
+      duration_slider: duration_slider,
+      duration_time_label: duration_time_label,
+      reset_button: reset_button
     }
 
     :wxPanel.refresh(panel)
