@@ -5,6 +5,9 @@ defmodule SevenGuis.Timer do
 
   @initial_duration_seconds 10
 
+  # in milliseconds
+  @tick_period 100
+
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
@@ -148,6 +151,7 @@ defmodule SevenGuis.Timer do
     }
 
     :wxPanel.refresh(panel)
+    send(self(), :tick)
     {panel, state}
   end
 
@@ -157,9 +161,13 @@ defmodule SevenGuis.Timer do
           duration_time_label: duration_time_label
         } = state
       ) do
-
     duration_text = duration_value_to_text(duration_value)
     :wxStaticText.setLabel(duration_time_label, duration_text)
+    {:noreply, state}
+  end
+
+  def handle_info(:tick, state) do
+    Process.send_after(self(), :tick, @tick_period)
     {:noreply, state}
   end
 
