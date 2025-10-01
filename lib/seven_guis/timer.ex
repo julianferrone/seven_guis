@@ -1,4 +1,5 @@
 defmodule SevenGuis.Timer do
+  use Bitwise
   use WxEx
 
   @behaviour :wx_object
@@ -15,14 +16,14 @@ defmodule SevenGuis.Timer do
   def init([notebook]) do
     panel = :wxPanel.new(notebook)
 
-    flex_grid_sizer = :wxGridBagSizer.new(vgap: 10, hgap: 10)
-    :wxWindow.setSizer(panel, flex_grid_sizer)
+    grid_bag_sizer = :wxGridBagSizer.new(vgap: 10, hgap: 10)
+    :wxWindow.setSizer(panel, grid_bag_sizer)
 
     prev_tick_time = DateTime.utc_now()
 
     # Static elapsed time label
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       :wxStaticText.new(
         panel,
         System.unique_integer([:positive, :monotonic]),
@@ -52,7 +53,7 @@ defmodule SevenGuis.Timer do
         gauge_range
       )
 
-    :wxGridBagSizer.add(flex_grid_sizer, elapsed_time_gauge, {0, 1})
+    :wxGridBagSizer.add(grid_bag_sizer, elapsed_time_gauge, {0, 1})
 
     # Elapsed time label
     elapsed_time_label_id = System.unique_integer([:positive, :monotonic])
@@ -65,7 +66,7 @@ defmodule SevenGuis.Timer do
       )
 
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       elapsed_time_label,
       {0, 2},
       flag: wxALIGN_RIGHT()
@@ -73,7 +74,7 @@ defmodule SevenGuis.Timer do
 
     # Static duration label
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       :wxStaticText.new(
         panel,
         System.unique_integer([:positive, :monotonic]),
@@ -97,7 +98,7 @@ defmodule SevenGuis.Timer do
       )
 
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       duration_slider,
       {1, 1},
       flag: wxEXPAND()
@@ -116,7 +117,7 @@ defmodule SevenGuis.Timer do
       )
 
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       duration_time_label,
       {1, 2},
       flag: wxALIGN_RIGHT()
@@ -135,7 +136,7 @@ defmodule SevenGuis.Timer do
     :wxButton.connect(reset_button, :command_button_clicked)
 
     :wxGridBagSizer.add(
-      flex_grid_sizer,
+      grid_bag_sizer,
       reset_button,
       {2, 0},
       span: {1, 3},
@@ -148,6 +149,7 @@ defmodule SevenGuis.Timer do
       elapsed: 0.0,
       duration: initial_duration,
       # GUI elements
+      grid_bag_sizer: grid_bag_sizer,
       elapsed_time_gauge: elapsed_time_gauge,
       elapsed_time_label: elapsed_time_label,
       duration_slider: duration_slider,
@@ -163,6 +165,7 @@ defmodule SevenGuis.Timer do
   def handle_event(
         {:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}},
         %{
+          grid_bag_sizer: grid_bag_sizer,
           elapsed_time_gauge: elapsed_time_gauge,
           elapsed_time_label: elapsed_time_label
         } = state
@@ -176,6 +179,9 @@ defmodule SevenGuis.Timer do
     # Update gauge range
     :wxGauge.setValue(elapsed_time_gauge, reset_elapsed)
 
+    # Force layout of grid to keep elapsed time and duration labels
+    :wxGridBagSizer.layout(grid_bag_sizer)
+
     current_tick_time = DateTime.utc_now()
     state = %{state | elapsed: reset_elapsed, prev_tick_time: current_tick_time}
     send(self(), :tick)
@@ -185,6 +191,7 @@ defmodule SevenGuis.Timer do
   def handle_event(
         {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, duration_value, _}},
         %{
+          grid_bag_sizer: grid_bag_sizer,
           duration_time_label: duration_time_label,
           elapsed_time_gauge: elapsed_time_gauge
         } = state
@@ -197,6 +204,9 @@ defmodule SevenGuis.Timer do
     elapsed_range = duration_value |> duration_to_seconds() |> seconds_to_elapsed()
     :wxGauge.setRange(elapsed_time_gauge, elapsed_range)
 
+    # Force layout of grid to keep elapsed time and duration labels
+    :wxGridBagSizer.layout(grid_bag_sizer)
+
     current_tick_time = DateTime.utc_now()
     state = %{state | duration: duration_value, prev_tick_time: current_tick_time}
     send(self(), :tick)
@@ -206,6 +216,7 @@ defmodule SevenGuis.Timer do
   def handle_info(
         :tick,
         %{
+          grid_bag_sizer: grid_bag_sizer,
           duration: duration,
           elapsed_time_gauge: elapsed_time_gauge,
           elapsed_time_label: elapsed_time_label,
@@ -242,6 +253,9 @@ defmodule SevenGuis.Timer do
     :wxGauge.setValue(elapsed_time_gauge, elapsed)
     :wxStaticText.setLabel(elapsed_time_label, elapsed_value_to_text(elapsed))
 
+    # Force layout of grid to keep elapsed time and duration labels right-aligned
+    :wxGridBagSizer.layout(grid_bag_sizer)
+
     state = %{
       state
       | prev_tick_time: current_tick_time,
@@ -258,7 +272,12 @@ defmodule SevenGuis.Timer do
   end
 
   def elapsed_value_to_text(elapsed) do
-    ~c"#{elapsed / 1000.0}s"
+    elapsed_secs =
+      elapsed
+      |> elapsed_to_seconds()
+      |> Float.round(1)
+
+    ~c"#{elapsed_secs}s"
   end
 
   def duration_to_seconds(duration), do: duration / 10
