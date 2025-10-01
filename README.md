@@ -30,4 +30,4 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 
 ### Timer
 
-![Seven GUIs in Elixir - Timer](https://github.com/user-attachments/assets/cc49a87c-1f54-446e-a36c-f1f462259b5d)
+![Seven GUIs in Elixir - Timer](https://github.com/user-attachments/assets/8db4d662-1010-46f7-9f3d-5ce8c4209047)
