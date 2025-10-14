@@ -252,7 +252,7 @@ defmodule SevenGuis.Crud do
         },
         %{ids: %{delete: delete_id}} = state
       ) do
-    :wxListBox.delete(state.widgets.names, state.selection_index)
+    state = delete_name(state)
     {:noreply, state}
   end
 
@@ -321,6 +321,19 @@ defmodule SevenGuis.Crud do
 
     # Update widgets
     :wxListBox.setString(state.widgets.names, index, full_name)
+
+    state
+  end
+
+  @doc """
+  Deletes the name at the currently selected index.
+  """
+  def delete_name(state) do
+    index = state.selection_index
+
+    :wxListBox.delete(state.widgets.names, index)
+    name_data = List.delete_at(state.name_data, index)
+    state = %{state | name_data: name_data}
 
     state
   end
