@@ -119,7 +119,6 @@ defmodule SevenGuis.Crud do
     :wxListBox.select(names, selection_index)
     :wxListBox.connect(names, :command_listbox_selected)
 
-
     # 1.3. Name inputs sizer
     name_sizer = :wxFlexGridSizer.new(2, 2, @gap, @gap)
     :wxGridBagSizer.add(grid_sizer, name_sizer, {1, 1})
@@ -131,12 +130,12 @@ defmodule SevenGuis.Crud do
       flag: wxALIGN_RIGHT()
     )
 
-    # 1.3.2. Name text input
-    name = :wxTextCtrl.new(panel, ids.name)
+    # 1.3.2. Given name text input
+    given_name = :wxTextCtrl.new(panel, ids.name)
 
     :wxFlexGridSizer.add(
       name_sizer,
-      name,
+      given_name,
       flag: wxEXPAND()
     )
 
@@ -176,9 +175,14 @@ defmodule SevenGuis.Crud do
     :wxButton.connect(delete, :command_button_clicked)
 
     widgets = %{
+      # Query
       prefix_filter: prefix_filter,
-      name: name,
+      # Name text controls
+      given_name: given_name,
       surname: surname,
+      # List of names
+      names: names,
+      # Buttons
       create: create,
       update: update,
       delete: delete
@@ -188,7 +192,7 @@ defmodule SevenGuis.Crud do
       ids: ids,
       widgets: widgets,
       name_data: name_data,
-      selection_index: selection_index,
+      selection_index: selection_index
     }
 
     :wxPanel.refresh(panel)
