@@ -214,6 +214,21 @@ defmodule SevenGuis.Crud do
     {:noreply, state}
   end
 
+  def handle_event(
+        {
+          :wx,
+          create_id,
+          _,
+          _,
+          {:wxCommand, :command_button_clicked, _, _, _}
+        },
+        %{ids: %{create: create_id}}=state
+      ) do
+    state = append_name(state)
+    {:noreply, state}
+  end
+
+  ## Fallback event handling
   def handle_event(request, state) do
     IO.inspect(request: request, state: state)
     {:noreply, state}
@@ -241,5 +256,23 @@ defmodule SevenGuis.Crud do
       ~c"Mustermann, Max",
       ~c"Tisch, Roman"
     ]
+  end
+
+  @doc """
+  Appends a full name to the list of names in the widget.
+  """
+  def append_name(state) do
+    # Get values from widgets
+    given_name = :wxTextCtrl.getValue(state.widgets.given_name)
+    surname = :wxTextCtrl.getValue(state.widgets.surname)
+
+    # Change data state
+    full_name = arrange_name(given_name, surname)
+    name_data = state.name_data ++ [full_name]
+    state = %{state | name_data: name_data}
+
+    # Update widgets
+    :wxListBox.append(state.widgets.names, full_name)
+    state
   end
 end
