@@ -104,12 +104,21 @@ defmodule SevenGuis.Crud do
       prefix_filter
     )
 
+    :wxTextCtrl.connect(prefix_filter, :command_text_updated)
+
     # 1.2. List of names
     names = :wxListBox.new(panel, Id.generate_id(), style: wxLB_SINGLE())
     :wxGridBagSizer.add(grid_sizer, names, {1, 0}, flag: wxEXPAND())
 
+    # Initialize list with names
     name_data = initial_names()
     :wxListBox.set(names, name_data)
+
+    # Hook up selection event
+    selection_index = 0
+    :wxListBox.select(names, selection_index)
+    :wxListBox.connect(names, :command_listbox_selected)
+
 
     # 1.3. Name inputs sizer
     name_sizer = :wxFlexGridSizer.new(2, 2, @gap, @gap)
@@ -154,14 +163,17 @@ defmodule SevenGuis.Crud do
     # 2.1. Create Button
     create = :wxButton.new(panel, ids.create, label: ~c"Create")
     :wxBoxSizer.add(button_box_sizer, create)
+    :wxButton.connect(create, :command_button_clicked)
 
     # 2.2. Update Button
     update = :wxButton.new(panel, ids.update, label: ~c"Update")
     :wxBoxSizer.add(button_box_sizer, update)
+    :wxButton.connect(update, :command_button_clicked)
 
     # 2.3. Delete Button
     delete = :wxButton.new(panel, ids.delete, label: ~c"Delete")
     :wxBoxSizer.add(button_box_sizer, delete)
+    :wxButton.connect(delete, :command_button_clicked)
 
     widgets = %{
       prefix_filter: prefix_filter,
@@ -175,7 +187,8 @@ defmodule SevenGuis.Crud do
     state = %{
       ids: ids,
       widgets: widgets,
-      name_data: name_data
+      name_data: name_data,
+      selection_index: selection_index,
     }
 
     :wxPanel.refresh(panel)
@@ -183,6 +196,11 @@ defmodule SevenGuis.Crud do
   end
 
   # Handling events
+
+  def handle_event(request, state) do
+    IO.inspect([request: request, state: state])
+    {:noreply, state}
+  end
 
   # Functionality
 
