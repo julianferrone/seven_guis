@@ -222,9 +222,37 @@ defmodule SevenGuis.Crud do
           _,
           {:wxCommand, :command_button_clicked, _, _, _}
         },
-        %{ids: %{create: create_id}}=state
+        %{ids: %{create: create_id}} = state
       ) do
     state = append_name(state)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {
+          :wx,
+          update_id,
+          _,
+          _,
+          {:wxCommand, :command_button_clicked, _, _, _}
+        },
+        %{ids: %{update: update_id}} = state
+      ) do
+    state = update_name(state)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {
+          :wx,
+          delete_id,
+          _,
+          _,
+          {:wxCommand, :command_button_clicked, _, _, _}
+        },
+        %{ids: %{delete: delete_id}} = state
+      ) do
+    :wxListBox.delete(state.widgets.names, state.selection_index)
     {:noreply, state}
   end
 
@@ -273,6 +301,27 @@ defmodule SevenGuis.Crud do
 
     # Update widgets
     :wxListBox.append(state.widgets.names, full_name)
+    state
+  end
+
+  @doc """
+  Updates a name at the selected index of the list of names in the widget.
+  """
+  def update_name(state) do
+    # Get values from widgets
+    given_name = :wxTextCtrl.getValue(state.widgets.given_name)
+    surname = :wxTextCtrl.getValue(state.widgets.surname)
+
+    index = state.selection_index
+
+    # Change data state
+    full_name = arrange_name(given_name, surname)
+    name_data = List.replace_at(state.name_data, index, full_name)
+    state = %{state | name_data: name_data}
+
+    # Update widgets
+    :wxListBox.setString(state.widgets.names, index, full_name)
+
     state
   end
 end
