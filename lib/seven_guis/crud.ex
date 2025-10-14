@@ -105,8 +105,10 @@ defmodule SevenGuis.Crud do
     )
 
     # 1.2. List of names
-    names = :wxListCtrl.new(panel)
+    names = :wxListBox.new(panel, Id.generate_id(), style: wxLB_SINGLE())
     :wxGridBagSizer.add(grid_sizer, names, {1, 0}, flag: wxEXPAND())
+
+    :wxListBox.set(names, initial_names())
 
     # 1.3. Name inputs sizer
     name_sizer = :wxFlexGridSizer.new(2, 2, @gap, @gap)
@@ -171,10 +173,36 @@ defmodule SevenGuis.Crud do
 
     state = %{
       ids: ids,
-      widgets: widgets,
+      widgets: widgets
     }
 
     :wxPanel.refresh(panel)
     {panel, state}
+  end
+
+  # Handling events
+
+  # Functionality
+
+  @doc """
+  Conatenate a name and surname into a single charlist by placing the surname
+  first, followed by a comma, followed by the given name.
+
+  # Examples
+
+      iex> arrange_name(~c"John", ~c"Doe")
+      ~c"Doe, John"
+  """
+  @spec arrange_name(charlist(), charlist()) :: charlist()
+  def arrange_name(given_name, surname) do
+    surname ++ ~c", " ++ given_name
+  end
+
+  defp initial_names() do
+    [
+      ~c"Emil, Hans",
+      ~c"Mustermann, Max",
+      ~c"Tisch, Roman"
+    ]
   end
 end
