@@ -4,16 +4,16 @@ defmodule SevenGuis.Id do
   """
 
   @doc """
-  Generates a unique ID integer for a term, returned in a tuple of `{term, id_integer}`.
+  Generates a unique ID integer.
 
   # Examples
 
-      iex> generate_id(:foo)
-      {:foo, 1}
+      iex> generate_id()
+      1
   """
-  @spec generate_id(term()) :: {term(), integer()}
-  defp generate_id(id_name) do
-    {id_name, System.unique_integer([:positive, :monotonic])}
+  @spec generate_id() :: integer()
+  def generate_id() do
+    System.unique_integer([:positive, :monotonic])
   end
 
   @doc """
@@ -25,6 +25,6 @@ defmodule SevenGuis.Id do
   """
   @spec generate_ids(list(term())) :: %{term() => integer()}
   def generate_ids(id_names) do
-    Map.new(id_names, &generate_id/1)
+    Map.new(id_names, fn id_name -> {id_name, generate_id()} end)
   end
 end
