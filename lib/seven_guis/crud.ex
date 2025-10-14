@@ -174,19 +174,6 @@ defmodule SevenGuis.Crud do
       widgets: widgets,
     }
 
-    # state = %{
-    #   panel: panel,
-    #   flight_choice_id: flight_choice_id,
-    #   flight_choice: flight_choice,
-    #   start_date_id: start_date_id,
-    #   start_date: start_date,
-    #   return_date_id: return_date_id,
-    #   return_date: return_date,
-    #   booking_button_id: booking_button_id,
-    #   booking_button: booking_button,
-    #   widget_state: widget_state,
-    #   constraints_state: constraints_state
-    # }
     :wxPanel.refresh(panel)
     {panel, state}
   end
