@@ -108,7 +108,8 @@ defmodule SevenGuis.Crud do
     names = :wxListBox.new(panel, Id.generate_id(), style: wxLB_SINGLE())
     :wxGridBagSizer.add(grid_sizer, names, {1, 0}, flag: wxEXPAND())
 
-    :wxListBox.set(names, initial_names())
+    name_data = initial_names()
+    :wxListBox.set(names, name_data)
 
     # 1.3. Name inputs sizer
     name_sizer = :wxFlexGridSizer.new(2, 2, @gap, @gap)
@@ -173,7 +174,8 @@ defmodule SevenGuis.Crud do
 
     state = %{
       ids: ids,
-      widgets: widgets
+      widgets: widgets,
+      name_data: name_data
     }
 
     :wxPanel.refresh(panel)
