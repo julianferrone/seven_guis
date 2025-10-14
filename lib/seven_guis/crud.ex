@@ -200,9 +200,22 @@ defmodule SevenGuis.Crud do
   end
 
   # Handling events
+  def handle_event(
+        {
+          :wx,
+          _,
+          _,
+          _,
+          {:wxCommand, :command_listbox_selected, _, index, _}
+        },
+        state
+      ) do
+    state = %{state | selection_index: index}
+    {:noreply, state}
+  end
 
   def handle_event(request, state) do
-    IO.inspect([request: request, state: state])
+    IO.inspect(request: request, state: state)
     {:noreply, state}
   end
 
