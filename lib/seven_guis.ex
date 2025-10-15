@@ -36,7 +36,7 @@ defmodule SevenGuis do
     timer_panel = SevenGuis.Timer.start_link(notebook)
     :wxNotebook.addPage(notebook, timer_panel, "Timer")
 
-    crud_panel = :wxPanel.new(notebook)
+    crud_panel = SevenGuis.Crud.start_link(notebook)
     :wxNotebook.addPage(notebook, crud_panel, "CRUD")
 
     circle_drawer_panel = :wxPanel.new(notebook)

@@ -10,7 +10,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 - [x] Temperature Converter
 - [x] Flight Booker
 - [x] Timer
-- [ ] CRUD
+- [x] CRUD
 - [ ] Circle Drawer
 - [ ] Cells
 
@@ -31,3 +31,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 ### Timer
 
 ![Seven GUIs in Elixir - Timer](https://github.com/user-attachments/assets/8db4d662-1010-46f7-9f3d-5ce8c4209047)
+
+### CRUD
+
+![Seven GUIs in Elixir - CRUD](https://github.com/user-attachments/assets/1edd7f8e-977f-408f-82c9-81f8b6b7bcef)
