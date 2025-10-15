@@ -256,6 +256,20 @@ defmodule SevenGuis.Crud do
     {:noreply, state}
   end
 
+  def handle_event(
+        {
+          :wx,
+          prefix_filter_id,
+          _,
+          _,
+          {:wxCommand, :command_text_updated, search_text, _, _}
+        },
+        %{ids: %{prefix_filter: prefix_filter_id}} = state
+      ) do
+    update_filtered_names(state.widgets.names, state.name_data, search_text)
+    {:noreply, state}
+  end
+
   ## Fallback event handling
   def handle_event(request, state) do
     IO.inspect(request: request, state: state)
@@ -336,5 +350,34 @@ defmodule SevenGuis.Crud do
     state = %{state | name_data: name_data}
 
     state
+  end
+
+  @doc """
+  Sets the names in the wxListBox `names` to only display the names of
+  `name_data` which contain `substring` (case-insensitive).
+  """
+  def update_filtered_names(names, name_data, substring) do
+    filtered = filter_names(name_data, substring)
+    :wxListBox.set(names, filtered)
+  end
+
+  @doc """
+  Returns `true` if `string` contains `search_pattern` (case-insensitive),
+  `false` if not.
+  """
+  def contains(string, search_pattern) do
+    string = :string.casefold(string)
+    search_pattern = :string.casefold(search_pattern)
+    case :string.find(string, search_pattern) do
+      :nomatch -> false
+      _ -> true
+    end
+  end
+
+  @doc """
+  Filters `name_data` for the charlists which have `substring` in them.
+  """
+  def filter_names(name_data, substring) do
+    Enum.filter(name_data, fn name -> contains(name, substring) end)
   end
 end
