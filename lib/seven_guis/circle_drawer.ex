@@ -37,6 +37,7 @@ defmodule SevenGuis.CircleDrawer do
     :wxSizer.layout(main_sizer)
 
     state = %{
+      # GUI elements
       canvas: canvas,
       undo: undo,
       redo: redo,
@@ -70,5 +71,37 @@ defmodule SevenGuis.CircleDrawer do
   def handle_event(request, state) do
     IO.inspect(request: request, state: state)
     {:noreply, state}
+  end
+
+  # _____________________ Event Sourcing _____________________
+
+  def replay(commands) do
+    Enum.reduce(
+      Enum.reverse(commands),
+      %{},
+      fn command, state_map -> update(command, state_map) end
+    )
+  end
+
+  def update(%{action: :create} = command, current) do
+    circle = %{
+      x: command.x,
+      y: command.y,
+      r: command.r
+    }
+
+    Map.put(
+      current,
+      command.index,
+      circle
+    )
+  end
+
+  def update(%{action: :resize} = command, current) do
+    Map.update!(
+      current,
+      command.index,
+      fn circle -> %{circle | r: command.r} end
+    )
   end
 end
