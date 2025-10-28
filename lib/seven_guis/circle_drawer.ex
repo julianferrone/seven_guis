@@ -39,10 +39,32 @@ defmodule SevenGuis.CircleDrawer do
     state = %{
       canvas: canvas,
       undo: undo,
-      redo: redo
+      redo: redo,
+      # Event sourcing
+      index: 0,
+      commands: []
     }
 
     {panel, state}
+  end
+
+  @circle_radius 20
+
+  def handle_event(
+        {:wx, _, _, _, {:wxMouse, :left_down, x, y, _, _, _, _, _, _, _, _, _, _}},
+        %{index: index, commands: commands} = state
+      ) do
+    new_circle = %{
+      action: :create,
+      index: index,
+      x: x,
+      y: y,
+      r: @circle_radius
+    }
+
+    commands = [new_circle | commands]
+    state = %{state | commands: commands, index: index + 1}
+    {:noreply, state}
   end
 
   def handle_event(request, state) do
