@@ -29,8 +29,10 @@ defmodule SevenGuis.CircleDrawer do
 
     # 2. Create window to paint on and make it repaint the whole window on resize
     canvas = :wxPanel.new(panel, style: wxFULL_REPAINT_ON_RESIZE())
+    :wxPanel.setBackgroundStyle(canvas, wxBG_STYLE_PAINT())
     :wxPanel.connect(canvas, :left_down)
     :wxPanel.connect(canvas, :motion)
+    :wxPanel.connect(canvas, :paint, [:callback])
     :wxSizer.add(main_sizer, canvas, flag: wxEXPAND(), proportion: 1)
 
     # Force layout
@@ -57,7 +59,7 @@ defmodule SevenGuis.CircleDrawer do
 
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :left_down, x, y, _, _, _, _, _, _, _, _, _, _}},
-        %{index: index, commands: commands, circles: circles} = state
+        %{canvas: canvas, index: index, commands: commands, circles: circles} = state
       ) do
     new_circle = %{
       action: :create,
@@ -72,22 +74,95 @@ defmodule SevenGuis.CircleDrawer do
     circles = update(new_circle, circles)
 
     state = %{state | commands: commands, index: index, circles: circles}
+
+    :wxPanel.refresh(canvas)
+
     {:noreply, state}
   end
 
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :motion, x, y, _, _, _, _, _, _, _, _, _, _}},
-        %{circles: circles} = state
+        %{canvas: canvas, circles: circles} = state
       ) do
     mouse_point = %{x: x, y: y}
     highlighted = selected_circle(mouse_point, circles)
     state = %{state | highlighted: highlighted}
+
+    :wxPanel.refresh(canvas)
+
     {:noreply, state}
   end
 
   def handle_event(request, state) do
-    IO.inspect(request: request, state: state)
+    # IO.inspect(request: request, state: state)
     {:noreply, state}
+  end
+
+  def handle_sync_event(
+        {:wx, _, _, _, {:wxPaint, :paint}},
+        _ref,
+        %{canvas: canvas, highlighted: highlighted, circles: circles} = state
+      ) do
+    dc = :wxBufferedPaintDC.new(canvas)
+    :wxBufferedPaintDC.setBackground(dc, wxWHITE_BRUSH())
+    :wxBufferedPaintDC.clear(dc)
+    draw(dc, circles, highlighted)
+    :wxBufferedPaintDC.destroy(dc)
+    :ok
+  end
+
+  def handle_sync_event(request, ref, state) do
+    IO.inspect(request: request, ref: ref, state: state)
+    :ok
+  end
+
+  # _____________________ Drawing Circles ____________________
+
+  @spec draw(
+          :wxBufferedPaintDC.wxBufferedPaintDC(),
+          %{index() => circle()},
+          nil | index()
+        ) :: :ok
+  def draw(
+        window,
+        circles,
+        highlighted
+      ) do
+    canvas = :wxGraphicsContext.create(window)
+    :wxGraphicsContext.setPen(canvas, wxBLACK_PEN())
+
+    # Draw all unselected circles
+    :wxGraphicsContext.setBrush(canvas, wxTRANSPARENT_BRUSH())
+    unselected_path = :wxGraphicsContext.createPath(canvas)
+
+    for {index, circle} when index != highlighted <- circles do
+      # for {_index, circle} when circle.index != highlighted <- circles do
+      :wxGraphicsPath.addCircle(unselected_path, circle.x, circle.y, circle.r)
+    end
+
+    :wxGraphicsPath.closeSubpath(unselected_path)
+    :wxGraphicsContext.drawPath(canvas, unselected_path)
+    # cleanup
+    :wxGraphicsObject.destroy(unselected_path)
+
+    # Draw selected circle
+    if highlighted do
+      :wxGraphicsContext.setBrush(canvas, wxLIGHT_GREY_BRUSH())
+      selected_path = :wxGraphicsContext.createPath(canvas)
+
+      circle =
+        Map.get(circles, highlighted)
+
+      :wxGraphicsPath.addCircle(selected_path, circle.x, circle.y, circle.r)
+      :wxGraphicsContext.drawPath(canvas, selected_path)
+      # cleanup
+      :wxGraphicsObject.destroy(selected_path)
+    end
+
+    # Clean up canvas
+    :wxGraphicsObject.destroy(canvas)
+
+    :ok
   end
 
   # __________________ Highlighting Circles __________________
@@ -102,17 +177,24 @@ defmodule SevenGuis.CircleDrawer do
     overlapping_circles =
       Enum.filter(
         circles,
-        fn {index, circle} -> {index, is_in_circle(point, circle)} end
+        fn {_index, circle} ->
+          is_in_circle(point, circle)
+        end
       )
 
-    case Enum.min_by(
-      overlapping_circles,
-      fn {_index, circle} -> distance(point, circle) end,
-      fn -> nil end
-    ) do
-      {index, _circle} -> index
-      nil -> nil
-    end
+    minimum =
+      case Enum.min_by(
+             overlapping_circles,
+             fn {_index, circle} -> distance(point, circle) end,
+             fn -> nil end
+           ) do
+        {index, _circle} -> index
+        nil -> nil
+      end
+
+    # |> IO.inspect(label: "minimum")
+
+    minimum
   end
 
   @spec is_in_circle(point(), circle()) :: boolean()
