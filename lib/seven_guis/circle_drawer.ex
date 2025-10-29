@@ -31,6 +31,7 @@ defmodule SevenGuis.CircleDrawer do
     canvas = :wxPanel.new(panel, style: wxFULL_REPAINT_ON_RESIZE())
     :wxPanel.setBackgroundStyle(canvas, wxBG_STYLE_PAINT())
     :wxPanel.connect(canvas, :left_down)
+    :wxPanel.connect(canvas, :right_down)
     :wxPanel.connect(canvas, :motion)
     :wxPanel.connect(canvas, :paint, [:callback])
     :wxSizer.add(main_sizer, canvas, flag: wxEXPAND(), proportion: 1)
@@ -81,6 +82,29 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(
+        {:wx, _, _, _, {:wxMouse, :right_down, x, y, _, _, _, _, _, _, _, _, _, _}},
+        %{canvas: canvas, commands: commands, circles: circles} = state
+      ) do
+    mouse_point = %{x: x, y: y}
+    selected_index = selected_circle(mouse_point, circles)
+
+    new_circle = %{
+      action: :resize,
+      index: selected_index,
+      r: 50
+    }
+
+    commands = [new_circle | commands]
+    circles = update(new_circle, circles)
+
+    state = %{state | commands: commands, circles: circles}
+
+    :wxPanel.refresh(canvas)
+
+    {:noreply, state}
+  end
+
+  def handle_event(
         {:wx, _, _, _, {:wxMouse, :motion, x, y, _, _, _, _, _, _, _, _, _, _}},
         %{canvas: canvas, circles: circles} = state
       ) do
@@ -94,14 +118,14 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(request, state) do
-    # IO.inspect(request: request, state: state)
+    IO.inspect(request: request, state: state)
     {:noreply, state}
   end
 
   def handle_sync_event(
         {:wx, _, _, _, {:wxPaint, :paint}},
         _ref,
-        %{canvas: canvas, highlighted: highlighted, circles: circles} = state
+        %{canvas: canvas, highlighted: highlighted, circles: circles}
       ) do
     dc = :wxBufferedPaintDC.new(canvas)
     :wxBufferedPaintDC.setBackground(dc, wxWHITE_BRUSH())
@@ -172,7 +196,7 @@ defmodule SevenGuis.CircleDrawer do
   # Indexing into circles
   @type index :: integer()
 
-  @spec selected_circle(point(), %{index() => circle()}) :: nil | circle()
+  @spec selected_circle(point(), %{index() => circle()}) :: nil | index()
   def selected_circle(point, circles) do
     overlapping_circles =
       Enum.filter(
