@@ -9,8 +9,30 @@ defmodule SevenGuis.CircleDrawer do
 
   # -------------------------- Types -------------------------
 
-  @type command :: %{action: atom()}
-  @type commands :: %{done: list(command()), undone: list(command())}
+  # Circles
+  @type point :: %{x: integer(), y: integer()}
+  @type circle :: %{x: integer(), y: integer(), r: float()}
+  # Indexing into circles
+  @type index :: integer()
+
+  # Commands
+  @type command_resize :: %{
+          action: :resize,
+          index: index(),
+          from_r: float(),
+          to_r: float()
+        }
+
+  @type command_create :: %{
+          action: :create,
+          index: index(),
+          x: integer(),
+          y: integer(),
+          r: float()
+        }
+
+  @type command :: command_resize() | command_create()
+  @type commands :: %{done: [command()], undone: [command()]}
 
   # ------------------------ Graphics ------------------------
 
@@ -290,6 +312,36 @@ defmodule SevenGuis.CircleDrawer do
 
   # _____________________ Drawing Circles ____________________
 
+  @doc """
+  Draws circles on a WX canvas, optionally highlighting one.
+
+  ## Description
+
+  This function renders a collection of circles on a WX `BufferedPaintDC`.
+  All circles are drawn with a black outline. The currently `highlighted`
+  circle, if provided, is filled with light grey, while all other circles are
+  drawn transparent.
+
+  The function uses `:wxGraphicsContext` for vector-style drawing and cleans up
+  all graphics objects after drawing.
+
+  ## Parameters
+
+    * `dc` — a `:wxBufferedPaintDC.wxBufferedPaintDC()` representing the
+      drawing surface.
+    * `circles` — a map of circles indexed by `index()`, where each circle
+      has fields:
+        * `:x` — x-coordinate of the circle center.
+        * `:y` — y-coordinate of the circle center.
+        * `:r` — radius of the circle.
+    * `highlighted` — an optional `index()` of the circle to highlight. If
+      `nil`, no circle is highlighted.
+
+  ## Returns
+
+    * `:ok`
+
+  """
   @spec draw(
           :wxBufferedPaintDC.wxBufferedPaintDC(),
           %{index() => circle()},
@@ -339,11 +391,32 @@ defmodule SevenGuis.CircleDrawer do
 
   # __________________ Highlighting  __________________
 
-  @type point :: %{x: integer(), y: integer()}
-  @type circle :: %{x: integer(), y: integer(), r: float()}
-  # Indexing into circles
-  @type index :: integer()
+  @doc """
+  Determines which circle (if any) a given point lies within, returning the index
+  of the closest overlapping circle.
 
+  ## Description
+
+  This function checks a collection of circles and identifies which ones contain
+  the given point.
+
+  If multiple circles overlap the point, it returns the index of the circle
+  center is **closest** to the point.
+
+  If no circle contains the point, it returns `nil`.
+
+  ## Parameters
+
+  * `point` — a map or struct representing a point, expected to have numeric
+    fields `:x` and `:y`.
+  * `circles` — a map where each key is an `index()` (identifier) and each value
+    is a `circle()` (a map or struct with fields `:x`, `:y`, and `:r`).
+
+  ## Returns
+
+  * The `index()` of the closest circle that contains the point, or
+  * `nil` if the point lies outside all circles.
+  """
   @spec selected_circle(point(), %{index() => circle()}) :: nil | index()
   def selected_circle(point, circles) do
     overlapping_circles =
@@ -367,12 +440,52 @@ defmodule SevenGuis.CircleDrawer do
     minimum
   end
 
+  @doc """
+  Determines whether a point lies inside (or on the edge of) a given circle.
+
+  ## Parameters
+
+    * `point` — a map or struct representing a point, expected to have numeric
+        fields `:x` and `:y`.
+    * `circle` — a map or struct representing a circle, expected to have numeric
+        fields `:x`, `:y`, and `:r`, where `:x` and `:y` define the circle’s
+        center, and `:r` is its radius.
+
+  ## Returns
+
+    * `true` if the point lies within or exactly on the circle’s boundary.
+    * `false` otherwise.
+
+  ## Examples
+
+      iex> is_in_circle(%{x: 1, y: 1}, %{x: 0, y: 0, r: 2})
+      true
+
+      iex> is_in_circle(%{x: 3, y: 3}, %{x: 0, y: 0, r: 2})
+      false
+
+  """
   @spec is_in_circle(point(), circle()) :: boolean()
   defp is_in_circle(point, circle) do
     # Calculates the distance between the point and the circle origin
     distance(point, circle) <= circle.r
   end
 
+  @doc """
+  Calculates the Euclidean distance between two points.
+
+  ## Parameters
+
+    * `point_a` — a map or struct representing the first point, expected to
+      have numeric fields `:x` and `:y`.
+    * `point_b` — a map or struct representing the second point, expected to
+      have numeric fields `:x` and `:y`.
+
+  ## Returns
+
+    * A `float()` representing the straight-line (Euclidean) distance between
+      `point_a` and `point_b`.
+  """
   @spec distance(point(), point()) :: float()
   defp distance(point_a, point_b) do
     ((point_a.x - point_b.x) ** 2 + (point_a.y - point_b.y) ** 2) ** 0.5
@@ -380,6 +493,34 @@ defmodule SevenGuis.CircleDrawer do
 
   # _____________________ Event Sourcing _____________________
 
+  @doc """
+  Redoes the most recently undone command, updating both the command history
+  and the circles.
+
+  ## Description
+
+  Performs a **redo** operation by:
+
+    1. Moving the most recently undone command from the `:undone` list back to
+      the `:done` list.
+    2. Reapplying that command to the circles.
+
+  If there are no undone commands, the circles and command history remain
+  unchanged.
+
+  ## Parameters
+
+    * `commands` — a `commands()` map containing:
+        * `:done` — the list of executed commands.
+        * `:undone` — the list of undone commands.
+    * `circles` — a map of circles indexed by `index()`.
+
+  ## Returns
+
+    * A tuple `{commands(), circles()}`:
+        * The updated command history with the last undone command redone.
+        * The updated circles map reflecting the applied command.
+  """
   @spec redo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
   def redo(commands, circles) do
     commands = forward(commands)
@@ -388,6 +529,35 @@ defmodule SevenGuis.CircleDrawer do
     {commands, circles}
   end
 
+  @doc """
+  Undoes the most recent command, updating both the command history and the
+  circles.
+
+  ## Description
+
+  Performs an **undo** operation by:
+
+    1. Reverting the effect of the most recently executed command on the
+      circles.
+    2. Moving that command from the `:done` list to the `:undone` list in the
+      command history.
+
+  If there are no executed commands, the circles and command history remain
+  unchanged.
+
+  ## Parameters
+
+    * `commands` — a `commands()` map containing:
+        * `:done` — the list of executed commands.
+        * `:undone` — the list of undone commands.
+    * `circles` — a map of circles indexed by `index()`.
+
+  ## Returns
+
+    * A tuple `{commands(), circles()}`:
+        * The updated command history with the last command undone.
+        * The updated circles map reflecting the reverted command.
+  """
   @spec undo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
   def undo(commands, circles) do
     circles = revert(circles, focus(commands))
@@ -398,6 +568,29 @@ defmodule SevenGuis.CircleDrawer do
 
   # ----------------- List Zipper Operations -----------------
 
+  @doc """
+  Creates an empty command history.
+
+  ## Description
+
+  Returns a `commands()` map with no executed or undone commands.
+  This can be used to initialize an undo/redo system.
+
+  ## Parameters
+
+    * None
+
+  ## Returns
+
+    * A `commands()` map where:
+        * `:done` is an empty list of executed commands.
+        * `:undone` is an empty list of undone commands.
+
+  ## Examples
+
+      iex> empty_commands()
+      %{done: [], undone: []}
+  """
   @spec empty_commands() :: commands()
   def empty_commands() do
     %{
@@ -406,10 +599,52 @@ defmodule SevenGuis.CircleDrawer do
     }
   end
 
+  @doc """
+  Returns the most recently executed command from the history.
+
+  ## Description
+
+  The `focus/1` function retrieves the command at the "focus" of the command
+  history — that is, the most recently executed command in the `:done` list.
+
+  If no commands have been executed (`:done` is empty), it returns `nil`.
+
+  ## Parameters
+
+  * `commands` — a `commands()` map containing:
+    * `:done` — the list of executed commands.
+    * `:undone` — the list of undone commands.
+
+  ## Returns
+
+  * The most recent `command()` from the `:done` list, or `nil` if there are
+  no executed commands.
+  """
   @spec focus(commands()) :: command() | nil
   def focus(%{done: []}), do: nil
   def focus(%{done: [focal_point | _rest]}), do: focal_point
 
+  @doc """
+  Adds a new command to the command history, clearing the redo stack.
+
+  ## Description
+
+  Records a new command by prepending it to the `:done` list and resetting
+  the `:undone` list. This ensures that any previously undone commands
+  cannot be redone after a new command is added.
+
+  ## Parameters
+
+    * `commands` — a `commands()` map containing:
+        * `:done` — the list of executed commands.
+        * `:undone` — the list of undone commands.
+    * `command` — a `command()` map representing the new action to record.
+
+  ## Returns
+
+    * A new `commands()` map with the new command added to `:done` and
+      `:undone` cleared.
+  """
   @spec add_command(commands(), command()) :: commands()
   def add_command(%{done: done}, command) do
     %{
@@ -417,6 +652,29 @@ defmodule SevenGuis.CircleDrawer do
       undone: []
     }
   end
+
+  @doc """
+  Moves one command forward in the command history.
+
+  ## Description
+
+  Performs a **redo** operation by transferring the most recently undone
+  command from the `:undone` list back to the `:done` list.
+
+  If there are no undone commands (i.e. the `:undone` list is empty),
+  the function returns the `commands` map unchanged.
+
+  ## Parameters
+
+  * `commands` — a `commands()` map containing:
+    * `:done` — the list of commands that have been executed.
+    * `:undone` — the list of commands that have been undone and may be redone.
+
+  ## Returns
+
+  * A new `commands()` map with one command moved from `:undone` to `:done`,
+  or the unchanged map if there are no commands to redo.
+  """
 
   @spec forward(commands()) :: commands()
   def forward(%{undone: []} = commands) do
@@ -430,6 +688,28 @@ defmodule SevenGuis.CircleDrawer do
     }
   end
 
+  @doc """
+  Moves one command backward in the command history.
+
+  ## Description
+
+  Performs an **undo** operation by transferring the most recently executed
+  command from the `:done` list to the `:undone` list.
+
+  If there are no executed commands (i.e. the `:done` list is empty),
+  the function returns the `commands` map unchanged.
+
+  ## Parameters
+
+  * `commands` — a `commands()` map containing:
+    * `:done` — the list of commands that have been executed.
+    * `:undone` — the list of commands that have been undone.
+
+  ## Returns
+
+  * A new `commands()` map with one command moved from `:done` to `:undone`,
+    or the unchanged map if there are no commands to undo.
+  """
   @spec backward(commands()) :: commands()
   def backward(%{done: []} = commands) do
     commands
@@ -444,6 +724,34 @@ defmodule SevenGuis.CircleDrawer do
 
   # -------------------- Do Circle Changes -------------------
 
+  @doc """
+  Applies a circle-related command to update the collection of circles.
+
+  ## Description
+
+  This function performs an update operation on a map of circles based on
+  the provided `command`. Supported actions are:
+
+  * `:create` — adds a new circle at the given index using its position (`:x`,
+    `:y`) and radius (`:r`).
+  * `:resize` — updates the radius of an existing circle to a new value
+    (`:to_r`).
+
+  ## Parameters
+
+  * `circles` — a map where each key is an `index()` (identifier) and each
+    value is a `circle()`(a map or struct with fields `:x`, `:y`, and `:r`).
+  * `command` — a `command()` map describing the action to apply.
+    Must include:
+      * `:action` — either `:create` or `:resize`.
+      * `:index` — the target circle’s identifier.
+      * For `:create`: `:x`, `:y`, and `:r`.
+      * For `:resize`: `:to_r` — the new radius.
+
+  ## Returns
+
+  * A new map of circles with the command applied.
+  """
   @spec update(%{index() => circle()}, command()) :: %{index() => circle()}
   def update(circles, %{action: :create} = command) do
     circle = Map.take(command, [:x, :y, :r])
@@ -456,6 +764,32 @@ defmodule SevenGuis.CircleDrawer do
 
   # ------------------- Undo Circle Changes ------------------
 
+  @doc """
+  Reverts a circle-related action, restoring the previous state of the
+  collection.
+
+  ## Description
+
+  This function undoes an operation on a collection of circles based on the
+  provided `command`. Supported actions are:
+
+  * `:create` — removes the newly created circle.
+  * `:resize` — restores the circle’s previous radius (`:from_r`).
+
+  ## Parameters
+
+  * `circles` — a map where each key is an `index()` (identifier) and each
+    value is a `circle()` (a map or struct with fields `:x`, `:y`, and `:r`).
+  * `command` — a `command()` map describing the action to revert.
+    Must include:
+      * `:action` — either `:create` or `:resize`.
+      * `:index` — the target circle’s identifier.
+      * For `:resize`, also `:from_r` — the previous radius.
+
+  ## Returns
+
+  * A new map of circles with the action reverted.
+  """
   @spec revert(%{index() => circle()}, command()) :: %{index() => circle()}
   def revert(circles, %{action: :create} = command) do
     Map.delete(circles, command.index)
@@ -467,8 +801,34 @@ defmodule SevenGuis.CircleDrawer do
 
   # --------------------- Change Helpers ---------------------
 
+  @doc """
+  Updates the radius of a specific circle in a collection of circles.
+
+  ## Description
+
+  Given a map of circles indexed by an identifier, this function updates
+  the radius (`:r` field) of the circle at the specified `index`.
+
+  It raises a `KeyError` if no circle exists at the given index, since it uses
+  `Map.update!/3` internally.
+
+  ## Parameters
+
+  * `circles` — a map where each key is an `index()` (identifier) and each value is a `circle()`
+    (a map or struct with fields `:x`, `:y`, and `:r`).
+  * `index` — the key identifying which circle to update.
+  * `radius` — the new radius value, as a `float()`.
+
+  ## Returns
+
+  * A new map of circles with the updated radius for the specified circle.
+  """
   @spec update_circle_radius(%{index() => circle()}, index(), float()) :: %{index() => circle()}
   def update_circle_radius(circles, index, radius) do
-    Map.update!(circles, index, fn circle -> %{circle | r: radius} end)
+    Map.update!(
+      circles,
+      index,
+      fn circle -> Map.put(circle, :r, radius) end
+    )
   end
 end
