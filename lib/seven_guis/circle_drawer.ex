@@ -92,7 +92,10 @@ defmodule SevenGuis.CircleDrawer do
       radius_slider: radius_slider,
       # Event sourcing
       index: 0,
-      commands: [],
+      commands: %{
+        done: [],
+        undone: []
+      },
       # Circle map
       circles: %{},
       # is user highlighting a circle? nil if not, index number if yes
@@ -114,7 +117,11 @@ defmodule SevenGuis.CircleDrawer do
       r: @radius_default
     }
 
-    commands = [new_circle | commands]
+    commands = %{
+      done: [new_circle | commands.done],
+      undone: commands.undone
+    }
+
     index = index + 1
     circles = update(new_circle, circles)
 
@@ -150,8 +157,6 @@ defmodule SevenGuis.CircleDrawer do
         :wxSlider.setValue(radius_slider, circle.r)
         :wxDialog.show(resize_dialog)
     end
-
-    IO.inspect(state, label: "153")
 
     :wxPanel.refresh(canvas)
 
@@ -218,7 +223,11 @@ defmodule SevenGuis.CircleDrawer do
       to_r: 50
     }
 
-    commands = [new_circle | commands]
+    commands = %{
+      done: [new_circle | commands.done],
+      undone: commands.undone
+    }
+
     circles = update(new_circle, circles)
 
     %{state | commands: commands, circles: circles}
@@ -323,8 +332,6 @@ defmodule SevenGuis.CircleDrawer do
         {index, _circle} -> index
         nil -> nil
       end
-
-    # |> IO.inspect(label: "minimum")
 
     minimum
   end
