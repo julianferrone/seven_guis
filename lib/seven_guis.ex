@@ -39,7 +39,7 @@ defmodule SevenGuis do
     crud_panel = SevenGuis.Crud.start_link(notebook)
     :wxNotebook.addPage(notebook, crud_panel, "CRUD")
 
-    circle_drawer_panel = :wxPanel.new(notebook)
+    circle_drawer_panel = SevenGuis.CircleDrawer.start_link(notebook)
     :wxNotebook.addPage(notebook, circle_drawer_panel, "Circle Drawer")
 
     cells_panel = :wxPanel.new(notebook)
