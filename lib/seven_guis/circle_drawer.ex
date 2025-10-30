@@ -105,10 +105,7 @@ defmodule SevenGuis.CircleDrawer do
       radius_slider: radius_slider,
       # Event sourcing
       index: 0,
-      commands: %{
-        done: [],
-        undone: []
-      },
+      commands: empty_commands(),
       # Circle map
       circles: %{},
       # is user highlighting a circle? nil if not, index number if yes
@@ -136,13 +133,10 @@ defmodule SevenGuis.CircleDrawer do
       r: @radius_default
     }
 
-    commands = %{
-      done: [create_circle | commands.done],
-      undone: []
-    }
+    commands = add_command(commands, create_circle)
 
     index = index + 1
-    circles = update(create_circle, circles)
+    circles = update(circles, create_circle)
 
     state = %{state | commands: commands, index: index, circles: circles}
 
@@ -213,7 +207,7 @@ defmodule SevenGuis.CircleDrawer do
       to_r: radius
     }
 
-    circles = update(new_circle, circles)
+    circles = update(circles, new_circle)
 
     state = %{state | circles: circles}
 
@@ -242,13 +236,8 @@ defmodule SevenGuis.CircleDrawer do
       to_r: circle.r
     }
 
-    commands =
-      %{
-        done: [resize | commands.done],
-        undone: []
-      }
-
-    circles = update(resize, circles)
+    commands = add_command(commands, resize)
+    circles = update(circles, resize)
 
     state = %{state | commands: commands, circles: circles}
     :wxDialog.show(resize_dialog, show: false)
@@ -392,81 +381,93 @@ defmodule SevenGuis.CircleDrawer do
   # _____________________ Event Sourcing _____________________
 
   @spec redo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
-  def redo(%{undone: []} = commands, circles) do
-    {commands, circles}
-  end
-
-  def redo(
-        %{
-          done: done,
-          undone: [next | rest]
-        } = commands,
-        circles
-      ) do
-    commands = %{
-      done: [next | done],
-      undone: rest
-    }
-
-    circles = update(next, circles)
+  def redo(commands, circles) do
+    commands = forward(commands)
+    circles = update(circles, focus(commands))
 
     {commands, circles}
   end
 
   @spec undo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
-  def undo(%{done: []} = commands, circles) do
+  def undo(commands, circles) do
+    circles = revert(circles, focus(commands))
+    commands = backward(commands)
+
     {commands, circles}
   end
 
-  def undo(
-        %{
-          done: [last | done],
-          undone: undone
-        } = commands,
-        circles
-      ) do
-    commands = %{
+  # ----------------- List Zipper Operations -----------------
+
+  @spec empty_commands() :: commands()
+  def empty_commands() do
+    %{
+      done: [],
+      undone: []
+    }
+  end
+
+  @spec focus(commands()) :: command() | nil
+  def focus(%{done: []}), do: nil
+  def focus(%{done: [focal_point | _rest]}), do: focal_point
+
+  @spec add_command(commands(), command()) :: commands()
+  def add_command(%{done: done}, command) do
+    %{
+      done: [command | done],
+      undone: []
+    }
+  end
+
+  @spec forward(commands()) :: commands()
+  def forward(%{undone: []} = commands) do
+    commands
+  end
+
+  def forward(%{done: done, undone: [next | rest]}) do
+    %{
+      done: [next | done],
+      undone: rest
+    }
+  end
+
+  @spec backward(commands()) :: commands()
+  def backward(%{done: []} = commands) do
+    commands
+  end
+
+  def backward(%{done: [last | done], undone: undone}) do
+    %{
       done: done,
       undone: [last | undone]
     }
-
-    circles = revert(last, circles)
-
-    {commands, circles}
   end
 
   # -------------------- Do Circle Changes -------------------
 
-  def update(%{action: :create} = command, circles) do
-    circle = %{
-      x: command.x,
-      y: command.y,
-      r: command.r
-    }
-
-    Map.put(
-      circles,
-      command.index,
-      circle
-    )
+  @spec update(%{index() => circle()}, command()) :: %{index() => circle()}
+  def update(circles, %{action: :create} = command) do
+    circle = Map.take(command, [:x, :y, :r])
+    Map.put(circles, command.index, circle)
   end
 
-  def update(%{action: :resize} = command, circles) do
+  def update(circles, %{action: :resize} = command) do
     update_circle_radius(circles, command.index, command.to_r)
   end
 
   # ------------------- Undo Circle Changes ------------------
 
-  def revert(%{action: :create} = command, circles) do
+  @spec revert(%{index() => circle()}, command()) :: %{index() => circle()}
+  def revert(circles, %{action: :create} = command) do
     Map.delete(circles, command.index)
   end
 
-  def revert(%{action: :resize} = command, circles) do
+  def revert(circles, %{action: :resize} = command) do
     update_circle_radius(circles, command.index, command.from_r)
   end
 
   # --------------------- Change Helpers ---------------------
 
+  @spec update_circle_radius(%{index() => circle()}, index(), float()) :: %{index() => circle()}
   def update_circle_radius(circles, index, radius) do
     Map.update!(circles, index, fn circle -> %{circle | r: radius} end)
   end
