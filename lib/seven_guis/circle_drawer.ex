@@ -5,15 +5,28 @@ defmodule SevenGuis.CircleDrawer do
 
   @behaviour :wx_object
 
-  def start_link(notebook) do
-    :wx_object.start_link(__MODULE__, [notebook], [])
-  end
+  # ____________________ Module Constants ____________________
+
+  # -------------------------- Types -------------------------
+
+  @type command :: %{action: atom()}
+  @type commands :: %{done: list(command()), undone: list(command())}
+
+  # ------------------------ Graphics ------------------------
 
   @border 10
+
+  # ------------------- Circle Constraints -------------------
 
   @radius_min 10
   @radius_default 20
   @radius_max 50
+
+  # __________________ Widget Initialisation _________________
+
+  def start_link(notebook) do
+    :wx_object.start_link(__MODULE__, [notebook], [])
+  end
 
   def init([notebook]) do
     panel = :wxPanel.new(notebook)
@@ -99,17 +112,23 @@ defmodule SevenGuis.CircleDrawer do
       # Circle map
       circles: %{},
       # is user highlighting a circle? nil if not, index number if yes
-      highlighted: nil
+      highlighted: nil,
+      # if user is resizing a circle, this was the original circle radius
+      highlighted_prev_radius: nil
     }
 
     {panel, state}
   end
 
+  # ___________________ Handling GUI Events __________________
+
+  # ------------------- Asynchronous Events ------------------
+
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :left_down, x, y, _, _, _, _, _, _, _, _, _, _}},
         %{canvas: canvas, index: index, commands: commands, circles: circles} = state
       ) do
-    new_circle = %{
+    create_circle = %{
       action: :create,
       index: index,
       x: x,
@@ -118,12 +137,12 @@ defmodule SevenGuis.CircleDrawer do
     }
 
     commands = %{
-      done: [new_circle | commands.done],
-      undone: commands.undone
+      done: [create_circle | commands.done],
+      undone: []
     }
 
     index = index + 1
-    circles = update(new_circle, circles)
+    circles = update(create_circle, circles)
 
     state = %{state | commands: commands, index: index, circles: circles}
 
@@ -148,14 +167,15 @@ defmodule SevenGuis.CircleDrawer do
 
     state = %{state | highlighted: highlighted}
 
-    case highlighted do
+    state = case highlighted do
       nil ->
-        nil
+        state
 
       _selected_index ->
         circle = Map.get(circles, highlighted)
         :wxSlider.setValue(radius_slider, circle.r)
         :wxDialog.show(resize_dialog)
+        %{state | highlighted_prev_radius: circle.r}
     end
 
     :wxPanel.refresh(canvas)
@@ -186,12 +206,9 @@ defmodule SevenGuis.CircleDrawer do
         {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, radius, _}},
         %{canvas: canvas, highlighted: highlighted, circles: circles} = state
       ) do
-    old_circle = Map.get(circles, highlighted)
-
     new_circle = %{
       action: :resize,
       index: highlighted,
-      from_r: old_circle.r,
       to_r: radius
     }
 
@@ -209,29 +226,50 @@ defmodule SevenGuis.CircleDrawer do
         {:wx, _, resize_dialog, _, {:wxClose, :close_window}},
         %{
           resize_dialog: resize_dialog,
-          highlighted: highlighted,
           commands: commands,
-          circles: circles
+          circles: circles,
+          highlighted: highlighted,
+          highlighted_prev_radius: highlighted_prev_radius
         } = state
       ) do
-    old_circle = Map.get(circles, highlighted)
+    circle = Map.get(circles, highlighted)
 
-    new_circle = %{
+    resize = %{
       action: :resize,
       index: highlighted,
-      from_r: old_circle.r,
-      to_r: 50
+      from_r: highlighted_prev_radius,
+      to_r: circle.r
     }
 
     commands = %{
-      done: [new_circle | commands.done],
-      undone: commands.undone
-    }
+      done: [resize | commands.done],
+      undone: []
+    } |> IO.inspect(label: "Resized on close")
 
-    circles = update(new_circle, circles)
+    circles = update(resize, circles)
 
-    %{state | commands: commands, circles: circles}
+    state = %{state | commands: commands, circles: circles}
     :wxDialog.show(resize_dialog, show: false)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {:wx, _, undo, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        %{canvas: canvas, undo: undo, commands: commands, circles: circles} = state
+      ) do
+    {commands, circles} = undo(commands, circles)
+    state = %{state | commands: commands, circles: circles}
+    :wxPanel.refresh(canvas)
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {:wx, _, redo, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        %{canvas: canvas, redo: redo, commands: commands, circles: circles} = state
+      ) do
+    {commands, circles} = redo(commands, circles)
+    state = %{state | commands: commands, circles: circles}
+    :wxPanel.refresh(canvas)
     {:noreply, state}
   end
 
@@ -239,6 +277,8 @@ defmodule SevenGuis.CircleDrawer do
     IO.inspect(request: request, state: state)
     {:noreply, state}
   end
+
+  # ------------------- Synchronous Events -------------------
 
   def handle_sync_event(
         {:wx, _, _, _, {:wxPaint, :paint}},
@@ -306,7 +346,7 @@ defmodule SevenGuis.CircleDrawer do
     :ok
   end
 
-  # __________________ Highlighting Circles __________________
+  # __________________ Highlighting  __________________
 
   @type point :: %{x: integer(), y: integer()}
   @type circle :: %{x: integer(), y: integer(), r: float()}
@@ -349,17 +389,78 @@ defmodule SevenGuis.CircleDrawer do
 
   # _____________________ Event Sourcing _____________________
 
-  def replay(commands) do
-    Enum.reduce(
-      Enum.reverse(commands),
-      %{},
-      fn command, state_map -> update(command, state_map) end
-    )
+  @spec redo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
+  def redo(%{undone: []} = commands, circles) do
+    IO.inspect("Start", label: "redo, empty undone")
+    IO.inspect(commands, label: "redo, empty undone, commands")
+    IO.inspect(circles, label: "redo, empty undone, circles")
+    IO.inspect("Finish", label: "redo, empty undone")
+    {commands, circles}
+  end
+
+  def redo(
+        %{
+          done: done,
+          undone: [next | rest]
+        } = commands,
+        circles
+      ) do
+    IO.inspect("Start", label: "redo, before redoing")
+    IO.inspect(commands, label: "redo, before redoing, commands")
+    IO.inspect(circles, label: "redo, before redoing, circles")
+
+    commands = %{
+      done: [next | done],
+      undone: rest
+    }
+
+    circles = update(next, circles)
+
+    IO.inspect(commands, label: "redo, after redoing, commands")
+    IO.inspect(circles, label: "redo, after redoing, circles")
+    IO.inspect("Finish", label: "redo, after redoing")
+
+    {commands, circles}
+  end
+
+  @spec undo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
+  def undo(%{done: []} = commands, circles) do
+    IO.inspect("Start", label: "undo, empty done")
+    IO.inspect(commands, label: "undo, empty done, commands")
+    IO.inspect(circles, label: "undo, empty done, circles")
+    IO.inspect("Finish", label: "undo, empty done")
+
+    {commands, circles}
+  end
+
+  def undo(
+        %{
+          done: [last | done],
+          undone: undone
+        } = commands,
+        circles
+      ) do
+    IO.inspect("Start", label: "undo, before undoing")
+    IO.inspect(commands, label: "undo, before undoing, commands")
+    IO.inspect(circles, label: "undo, before undoing, circles")
+
+    commands = %{
+      done: done,
+      undone: [last | undone]
+    }
+
+    circles = revert(last, circles)
+
+    IO.inspect(commands, label: "undo, after undoing, commands")
+    IO.inspect(circles, label: "undo, after undoing, circles")
+    IO.inspect("Finish", label: "undo, after undoing")
+
+    {commands, circles}
   end
 
   # -------------------- Do Circle Changes -------------------
 
-  def update(%{action: :create} = command, current) do
+  def update(%{action: :create} = command, circles) do
     circle = %{
       x: command.x,
       y: command.y,
@@ -367,20 +468,24 @@ defmodule SevenGuis.CircleDrawer do
     }
 
     Map.put(
-      current,
+      circles,
       command.index,
       circle
     )
   end
 
-  def update(%{action: :resize} = command, current) do
-    update_circle_radius(current, command.index, command.to_r)
+  def update(%{action: :resize} = command, circles) do
+    update_circle_radius(circles, command.index, command.to_r)
   end
 
   # ------------------- Undo Circle Changes ------------------
 
-  def revert(%{action: :resize} = command, current) do
-    update_circle_radius(current, command.index, command.from_r)
+  def revert(%{action: :create} = command, circles) do
+    Map.delete(circles, command.index)
+  end
+
+  def revert(%{action: :resize} = command, circles) do
+    update_circle_radius(circles, command.index, command.from_r)
   end
 
   # --------------------- Change Helpers ---------------------
