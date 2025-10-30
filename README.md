@@ -11,7 +11,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 - [x] Flight Booker
 - [x] Timer
 - [x] CRUD
-- [ ] Circle Drawer
+- [x] Circle Drawer
 - [ ] Cells
 
 ## In Action
@@ -35,3 +35,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 ### CRUD
 
 ![Seven GUIs in Elixir - CRUD](https://github.com/user-attachments/assets/1edd7f8e-977f-408f-82c9-81f8b6b7bcef)
+
+### Circle Drawer
+
+![Seven GUIs in Elixir - Circle Drawer](https://github.com/user-attachments/assets/ec8981d3-053f-46ce-add6-0a15881696cd)
