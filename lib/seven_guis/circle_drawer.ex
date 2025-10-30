@@ -167,16 +167,17 @@ defmodule SevenGuis.CircleDrawer do
 
     state = %{state | highlighted: highlighted}
 
-    state = case highlighted do
-      nil ->
-        state
+    state =
+      case highlighted do
+        nil ->
+          state
 
-      _selected_index ->
-        circle = Map.get(circles, highlighted)
-        :wxSlider.setValue(radius_slider, circle.r)
-        :wxDialog.show(resize_dialog)
-        %{state | highlighted_prev_radius: circle.r}
-    end
+        _selected_index ->
+          circle = Map.get(circles, highlighted)
+          :wxSlider.setValue(radius_slider, circle.r)
+          :wxDialog.show(resize_dialog)
+          %{state | highlighted_prev_radius: circle.r}
+      end
 
     :wxPanel.refresh(canvas)
 
@@ -241,10 +242,11 @@ defmodule SevenGuis.CircleDrawer do
       to_r: circle.r
     }
 
-    commands = %{
-      done: [resize | commands.done],
-      undone: []
-    } |> IO.inspect(label: "Resized on close")
+    commands =
+      %{
+        done: [resize | commands.done],
+        undone: []
+      }
 
     circles = update(resize, circles)
 
@@ -391,10 +393,6 @@ defmodule SevenGuis.CircleDrawer do
 
   @spec redo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
   def redo(%{undone: []} = commands, circles) do
-    IO.inspect("Start", label: "redo, empty undone")
-    IO.inspect(commands, label: "redo, empty undone, commands")
-    IO.inspect(circles, label: "redo, empty undone, circles")
-    IO.inspect("Finish", label: "redo, empty undone")
     {commands, circles}
   end
 
@@ -405,10 +403,6 @@ defmodule SevenGuis.CircleDrawer do
         } = commands,
         circles
       ) do
-    IO.inspect("Start", label: "redo, before redoing")
-    IO.inspect(commands, label: "redo, before redoing, commands")
-    IO.inspect(circles, label: "redo, before redoing, circles")
-
     commands = %{
       done: [next | done],
       undone: rest
@@ -416,20 +410,11 @@ defmodule SevenGuis.CircleDrawer do
 
     circles = update(next, circles)
 
-    IO.inspect(commands, label: "redo, after redoing, commands")
-    IO.inspect(circles, label: "redo, after redoing, circles")
-    IO.inspect("Finish", label: "redo, after redoing")
-
     {commands, circles}
   end
 
   @spec undo(commands(), %{index() => circle()}) :: {commands(), %{index() => circle()}}
   def undo(%{done: []} = commands, circles) do
-    IO.inspect("Start", label: "undo, empty done")
-    IO.inspect(commands, label: "undo, empty done, commands")
-    IO.inspect(circles, label: "undo, empty done, circles")
-    IO.inspect("Finish", label: "undo, empty done")
-
     {commands, circles}
   end
 
@@ -440,20 +425,12 @@ defmodule SevenGuis.CircleDrawer do
         } = commands,
         circles
       ) do
-    IO.inspect("Start", label: "undo, before undoing")
-    IO.inspect(commands, label: "undo, before undoing, commands")
-    IO.inspect(circles, label: "undo, before undoing, circles")
-
     commands = %{
       done: done,
       undone: [last | undone]
     }
 
     circles = revert(last, circles)
-
-    IO.inspect(commands, label: "undo, after undoing, commands")
-    IO.inspect(circles, label: "undo, after undoing, circles")
-    IO.inspect("Finish", label: "undo, after undoing")
 
     {commands, circles}
   end
