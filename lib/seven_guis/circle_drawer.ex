@@ -1,11 +1,19 @@
 defmodule SevenGuis.CircleDrawer do
+  alias SevenGuis.Id
   use WxEx
+  use Bitwise
 
   @behaviour :wx_object
 
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
+
+  @border 10
+
+  @radius_min 10
+  @radius_default 20
+  @radius_max 50
 
   def init([notebook]) do
     panel = :wxPanel.new(notebook)
@@ -36,14 +44,52 @@ defmodule SevenGuis.CircleDrawer do
     :wxPanel.connect(canvas, :paint, [:callback])
     :wxSizer.add(main_sizer, canvas, flag: wxEXPAND(), proportion: 1)
 
+    # 3. Create resize dialog for circles
+    resize_dialog = :wxDialog.new(panel, Id.generate_id(), ~c"Resize Circle")
+    :wxDialog.connect(resize_dialog, :close_window)
+
+    dialog_sizer = :wxBoxSizer.new(wxVERTICAL())
+    :wxDialog.setSizer(resize_dialog, dialog_sizer)
+
+    :wxBoxSizer.add(
+      dialog_sizer,
+      :wxStaticText.new(resize_dialog, Id.generate_id(), ~c"Adjust Diameter",
+        style: wxALIGN_CENTER() ||| wxST_NO_AUTORESIZE()
+      ),
+      flag: wxEXPAND() ||| wxALL(),
+      border: @border
+    )
+
+    radius_slider =
+      :wxSlider.new(
+        resize_dialog,
+        Id.generate_id(),
+        @radius_default,
+        @radius_min,
+        @radius_max
+      )
+
+    # :wxSlider.connect(radius_slider, :scroll_changed)
+    :wxSlider.connect(radius_slider, :command_slider_updated)
+
+    :wxBoxSizer.add(
+      dialog_sizer,
+      radius_slider,
+      flag: wxEXPAND(),
+      border: @border
+    )
+
     # Force layout
     :wxSizer.layout(main_sizer)
 
     state = %{
+      panel: panel,
       # GUI elements
       canvas: canvas,
       undo: undo,
       redo: redo,
+      resize_dialog: resize_dialog,
+      radius_slider: radius_slider,
       # Event sourcing
       index: 0,
       commands: [],
@@ -56,8 +102,6 @@ defmodule SevenGuis.CircleDrawer do
     {panel, state}
   end
 
-  @circle_radius 20
-
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :left_down, x, y, _, _, _, _, _, _, _, _, _, _}},
         %{canvas: canvas, index: index, commands: commands, circles: circles} = state
@@ -67,7 +111,7 @@ defmodule SevenGuis.CircleDrawer do
       index: index,
       x: x,
       y: y,
-      r: @circle_radius
+      r: @radius_default
     }
 
     commands = [new_circle | commands]
@@ -83,21 +127,31 @@ defmodule SevenGuis.CircleDrawer do
 
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :right_down, x, y, _, _, _, _, _, _, _, _, _, _}},
-        %{canvas: canvas, commands: commands, circles: circles} = state
+        %{
+          resize_dialog: resize_dialog,
+          radius_slider: radius_slider,
+          canvas: canvas,
+          circles: circles
+        } = state
       ) do
     mouse_point = %{x: x, y: y}
-    selected_index = selected_circle(mouse_point, circles)
 
-    new_circle = %{
-      action: :resize,
-      index: selected_index,
-      r: 50
-    }
+    highlighted =
+      selected_circle(mouse_point, circles)
 
-    commands = [new_circle | commands]
-    circles = update(new_circle, circles)
+    state = %{state | highlighted: highlighted}
 
-    state = %{state | commands: commands, circles: circles}
+    case highlighted do
+      nil ->
+        nil
+
+      _selected_index ->
+        circle = Map.get(circles, highlighted)
+        :wxSlider.setValue(radius_slider, circle.r)
+        :wxDialog.show(resize_dialog)
+    end
+
+    IO.inspect(state, label: "153")
 
     :wxPanel.refresh(canvas)
 
@@ -106,14 +160,69 @@ defmodule SevenGuis.CircleDrawer do
 
   def handle_event(
         {:wx, _, _, _, {:wxMouse, :motion, x, y, _, _, _, _, _, _, _, _, _, _}},
-        %{canvas: canvas, circles: circles} = state
+        %{canvas: canvas, circles: circles, resize_dialog: resize_dialog} = state
       ) do
-    mouse_point = %{x: x, y: y}
-    highlighted = selected_circle(mouse_point, circles)
-    state = %{state | highlighted: highlighted}
+    state =
+      if not :wxDialog.isShown(resize_dialog) do
+        mouse_point = %{x: x, y: y}
+        highlighted = selected_circle(mouse_point, circles)
+        state = %{state | highlighted: highlighted}
+        :wxPanel.refresh(canvas)
+        state
+      else
+        state
+      end
+
+    {:noreply, state}
+  end
+
+  # Redraw canvas when dialog slider is moved
+  def handle_event(
+        {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, radius, _}},
+        %{canvas: canvas, highlighted: highlighted, circles: circles} = state
+      ) do
+    old_circle = Map.get(circles, highlighted)
+
+    new_circle = %{
+      action: :resize,
+      index: highlighted,
+      from_r: old_circle.r,
+      to_r: radius
+    }
+
+    circles = update(new_circle, circles)
+
+    state = %{state | circles: circles}
 
     :wxPanel.refresh(canvas)
 
+    {:noreply, state}
+  end
+
+  # Actually update circles when dialog is closed
+  def handle_event(
+        {:wx, _, resize_dialog, _, {:wxClose, :close_window}},
+        %{
+          resize_dialog: resize_dialog,
+          highlighted: highlighted,
+          commands: commands,
+          circles: circles
+        } = state
+      ) do
+    old_circle = Map.get(circles, highlighted)
+
+    new_circle = %{
+      action: :resize,
+      index: highlighted,
+      from_r: old_circle.r,
+      to_r: 50
+    }
+
+    commands = [new_circle | commands]
+    circles = update(new_circle, circles)
+
+    %{state | commands: commands, circles: circles}
+    :wxDialog.show(resize_dialog, show: false)
     {:noreply, state}
   end
 
@@ -132,7 +241,6 @@ defmodule SevenGuis.CircleDrawer do
     :wxBufferedPaintDC.clear(dc)
     draw(dc, circles, highlighted)
     :wxBufferedPaintDC.destroy(dc)
-    :ok
   end
 
   def handle_sync_event(request, ref, state) do
@@ -148,11 +256,11 @@ defmodule SevenGuis.CircleDrawer do
           nil | index()
         ) :: :ok
   def draw(
-        window,
+        dc,
         circles,
         highlighted
       ) do
-    canvas = :wxGraphicsContext.create(window)
+    canvas = :wxGraphicsContext.create(dc)
     :wxGraphicsContext.setPen(canvas, wxBLACK_PEN())
 
     # Draw all unselected circles
@@ -183,7 +291,7 @@ defmodule SevenGuis.CircleDrawer do
       :wxGraphicsObject.destroy(selected_path)
     end
 
-    # Clean up canvas
+    # Clean up graphics
     :wxGraphicsObject.destroy(canvas)
 
     :ok
@@ -242,6 +350,8 @@ defmodule SevenGuis.CircleDrawer do
     )
   end
 
+  # -------------------- Do Circle Changes -------------------
+
   def update(%{action: :create} = command, current) do
     circle = %{
       x: command.x,
@@ -257,10 +367,18 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def update(%{action: :resize} = command, current) do
-    Map.update!(
-      current,
-      command.index,
-      fn circle -> %{circle | r: command.r} end
-    )
+    update_circle_radius(current, command.index, command.to_r)
+  end
+
+  # ------------------- Undo Circle Changes ------------------
+
+  def revert(%{action: :resize} = command, current) do
+    update_circle_radius(current, command.index, command.from_r)
+  end
+
+  # --------------------- Change Helpers ---------------------
+
+  def update_circle_radius(circles, index, radius) do
+    Map.update!(circles, index, fn circle -> %{circle | r: radius} end)
   end
 end
