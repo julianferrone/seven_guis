@@ -21,6 +21,20 @@ defmodule SevenGuis.Cells do
 
   # ___________________ Parsing User Input ___________________
 
+  @type ast_node_coord :: {:coord, {String.t(), integer()}}
+  @type ast_node_number :: {:num, float()}
+  @type ast_node_text :: {:text, String.t()}
+
+  @type function_name :: String.t()
+  @type function_arguments :: [ast_node()]
+  @type ast_node_function :: {:function, function_name(), function_arguments()}
+
+  @type ast_node ::
+          ast_node_coord()
+        | ast_node_number()
+        | ast_node_text()
+        | ast_node_function()
+
   # -------------------- Parsing Formulae --------------------
 
   # ------------------- Parsing Expressions ------------------
