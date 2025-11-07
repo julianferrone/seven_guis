@@ -42,7 +42,7 @@ defmodule SevenGuis do
     circle_drawer_panel = SevenGuis.CircleDrawer.start_link(notebook)
     :wxNotebook.addPage(notebook, circle_drawer_panel, "Circle Drawer")
 
-    cells_panel = :wxPanel.new(notebook)
+    cells_panel = SevenGuis.Cells.start_link(notebook)
     :wxNotebook.addPage(notebook, cells_panel, "Cells")
 
     :wxSizer.add(main_sizer, notebook, flag: wxEXPAND(), proportion: 1)
