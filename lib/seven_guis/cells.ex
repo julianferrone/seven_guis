@@ -150,6 +150,26 @@ defmodule SevenGuis.Cells do
     end
   end
 
+  def separated(parser, sep_parser) do
+    fn text ->
+      case parser.(text) do
+        :error -> :error
+        {first, rest} -> separated(parser, sep_parser, [first], rest)
+      end
+    end
+  end
+
+  defp separated(_parser, _sep_parser, results, "") do
+    {results, ""}
+  end
+
+  defp separated(parser, sep_parser, results, text) do
+    with {_sep, rest} <- sep_parser.(text),
+         {parsed, rest} <- parser.(rest) do
+      separated(parser, sep_parser, [parsed | results], rest)
+    end
+  end
+
   # -------------------- Parsing Formulae --------------------
 
   def parse_formula(text) do
@@ -159,7 +179,7 @@ defmodule SevenGuis.Cells do
         parse_all(&parse_expression/1),
         # If we don't parse in a float or an expression, parse as text
         # by pulling the entire string
-        parse_all(fn t -> {{:text, t}, ""} end)
+        fn t -> {{:text, t}, ""} end
       ]).(text)
 
     case parsed do
@@ -239,4 +259,7 @@ defmodule SevenGuis.Cells do
   end
 
   # -------------------- Parsing Functions -------------------
+
+  def parse_function(text) do
+  end
 end
