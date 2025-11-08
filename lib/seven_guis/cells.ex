@@ -74,6 +74,11 @@ defmodule SevenGuis.Cells do
   @type parse_result(success) :: {success, remainder_of_binary :: binary()} | :error
   @type parser(success) :: (binary() -> parse_result(success))
 
+  @doc """
+  Creates a parser which parses text using all the provided parsers, in order.
+
+  Returns `:error` if any of the underlying parsers returns `:error`.
+  """
   @spec sequence(list(parser(term()))) :: parser(list(term()))
   def sequence(parsers) do
     fn text -> sequence(text, parsers) end
@@ -105,6 +110,14 @@ defmodule SevenGuis.Cells do
     end
   end
 
+  @doc """
+  Creates a parser from a list of parsers which attempts to parse the text
+  using each parser, in order.
+
+  Returns the first successful parse result.
+
+  Returns `:error` if all of the underlying parsers return `:error`.
+  """
   @spec choices(list(parser(term()))) :: parser(term())
   def choices(parsers) do
     fn text -> choices(text, parsers) end
