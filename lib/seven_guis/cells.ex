@@ -70,4 +70,55 @@ defmodule SevenGuis.Cells do
   # ...................... Parsing Text ......................
 
   # ------------------- Parsing Combinators ------------------
+
+  @type parse_result(success) :: {success, remainder_of_binary :: binary()} | :error
+  @type parser(success) :: (binary() -> parse_result(success))
+
+  @spec sequence(list(parser(term()))) :: parser(list(term()))
+  def sequence(parsers) do
+    fn text -> sequence(text, parsers) end
+  end
+
+  @spec sequence(
+          binary(),
+          list(parser(term()))
+        ) :: parse_result(list(term()))
+  defp sequence(text, parsers) when is_binary(text) do
+    sequence(text, parsers, [])
+  end
+
+  @spec sequence(
+          binary(),
+          list(parser(term())),
+          intermediary_results :: list(term())
+        ) :: parse_result(list(term()))
+  defp sequence(text, [], results) do
+    {Enum.reverse(results), text}
+  end
+
+  defp sequence(text, [parser | parsers], results) do
+    {parsed, rest} = parser.(text)
+
+    case parsed do
+      :error -> :error
+      success -> sequence(rest, parsers, [success | results])
+    end
+  end
+
+  @spec choices(list(parser(term()))) :: parser(term())
+  def choices(parsers) do
+    fn text -> choices(text, parsers) end
+  end
+
+  @spec choices(binary(), list(parser(term()))) :: parse_result(term())
+  defp choices(text, []) when is_binary(text), do: :error
+
+  defp choices(text, [parser | parsers]) when is_binary(text) do
+    {parsed, rest} = parser.(text)
+
+    case parsed do
+      :error -> choices(text, parsers)
+      success -> {success, rest}
+    end
+  end
 end
