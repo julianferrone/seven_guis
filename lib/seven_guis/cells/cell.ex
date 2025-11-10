@@ -3,7 +3,14 @@ defmodule SevenGuis.Cells.Cell do
 
   defstruct [:subscribers, :formula]
 
+  alias SevenGuis.Cells.AstNodeTypes, as: AST
   alias __MODULE__, as: State
+  alias SevenGuis.Cells.Registry, as: CellRegistry
+
+  @spec start_link(AST.ast_node_formula(), {integer(), integer()}) :: GenServer.on_start()
+  def start_link(formula, coord) do
+    GenServer.start_link(__MODULE__, formula, name: via_tuple(coord))
+  end
 
   def init(formula) do
     state = %State{
@@ -26,10 +33,7 @@ defmodule SevenGuis.Cells.Cell do
     {:reply, :ok, state}
   end
 
-  # def handle_call(:get_value, _from, state) do
-  #   evaluate formula here
-  #   arguments = GenServer.call()
-  #   value = evaluate
-  #   {:reply, value, state}
-  # end
+  defp via_tuple(coord) do
+    CellRegistry.via_tuple(coord)
+  end
 end
