@@ -51,14 +51,18 @@ defmodule SevenGuis.Cells.Cell do
 
   def evaluate({:expr, {:appl, {:ident, function_name}, args}}) do
     function = lookup(function_name)
+
     case function do
-      {:no_function, undefined} -> {:no_function, undefined}
+      {:no_function, undefined} ->
+        {:no_function, undefined}
+
       defined ->
         # Because we use nil as a "no-information at coordinate"
         # we want to remove nils from the function arguments
         args = Enum.reject(args, fn x -> x == nil end)
         defined.(args)
     end
+
     function.(args)
   end
 
@@ -73,7 +77,28 @@ defmodule SevenGuis.Cells.Cell do
   def evaluate({:expr, expr}), do: evaluate(expr)
   def evaluate({_other, other_value}), do: other_value
 
+  # Binary arithmetic operators
+  def lookup(~c"PLUS"), do: binary_function(fn a, b -> a + b end)
+  def lookup(~c"MINUS"), do: binary_function(fn a, b -> a - b end)
+  def lookup(~c"MULT"), do: binary_function(fn a, b -> a * b end)
+  def lookup(~c"DIV"), do: binary_function(fn a, b -> a / b end)
+
+  # Arithmetic operators on lists
   def lookup(~c"SUM"), do: &Enum.sum/1
   def lookup(~c"PRODUCT"), do: &Enum.product/1
+
   def lookup(undefined), do: {:no_function, undefined}
+
+  def binary_function(f) do
+    fn args ->
+      case args do
+        [a, b] ->
+          f.(a, b)
+
+        other ->
+          arglen = length(other)
+          {:wrong_arglen, "Expected 2 arguments, got #{arglen}."}
+      end
+    end
+  end
 end
