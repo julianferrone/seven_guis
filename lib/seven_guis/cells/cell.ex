@@ -33,7 +33,47 @@ defmodule SevenGuis.Cells.Cell do
     {:reply, :ok, state}
   end
 
+  def handle_call(:get_value, _from, state) do
+    value = evaluate(state.formula)
+    {:reply, value, state}
+  end
+
   defp via_tuple(coord) do
     CellRegistry.via_tuple(coord)
   end
+
+  # ____________________ Evaluate Formulas ___________________
+
+  @spec evaluate(AST.ast_node_formula()) ::
+          AST.ast_node_integer()
+          | AST.ast_node_text()
+          | AST.ast_node_float()
+
+  def evaluate({:expr, {:appl, {:ident, function_name}, args}}) do
+    function = lookup(function_name)
+    case function do
+      {:no_function, undefined} -> {:no_function, undefined}
+      defined ->
+        # Because we use nil as a "no-information at coordinate"
+        # we want to just remove the nils from the
+        args = Enum.reject(args, fn x -> x == nil end)
+        defined.(args)
+    end
+    function.(args)
+  end
+
+  def evaluate({:coord, coord}) do
+    try do
+      GenServer.call(via_tuple(coord), :get_value)
+    catch
+      :exit, _ -> nil
+    end
+  end
+
+  def evaluate({:expr, expr}), do: evaluate(expr)
+  def evaluate({_other, other_value}), do: other_value
+
+  def lookup(~c"SUM"), do: &Enum.sum/1
+  def lookup(~c"PRODUCT"), do: &Enum.product/1
+  def lookup(undefined), do: {:no_function, undefined}
 end
