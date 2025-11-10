@@ -55,7 +55,7 @@ defmodule SevenGuis.Cells.Cell do
       {:no_function, undefined} -> {:no_function, undefined}
       defined ->
         # Because we use nil as a "no-information at coordinate"
-        # we want to just remove the nils from the
+        # we want to remove nils from the function arguments
         args = Enum.reject(args, fn x -> x == nil end)
         defined.(args)
     end
