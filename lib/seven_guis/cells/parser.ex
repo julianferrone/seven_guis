@@ -1,24 +1,5 @@
 defmodule SevenGuis.Cells.Parser do
-  @type ast_node_integer :: {:int, integer()}
-  @type ast_node_float :: {:float, float()}
-  @type ast_node_text :: {:text, charlist()}
-  @type ast_node_coord :: {:coord, {integer(), integer()}}
-  @type ast_node_identifier :: {:ident, charlist()}
-
-  @type ast_node_application :: {:appl, ast_node_identifier(), list(expr())}
-
-  @type expr ::
-          ast_node_integer()
-          | ast_node_float()
-          | ast_node_coord()
-          | ast_node_application()
-  @type ast_node_expr :: {:expr, expr()}
-
-  @type ast_node_formula ::
-          ast_node_integer()
-          | ast_node_float()
-          | ast_node_text()
-          | ast_node_expr()
+  alias SevenGuis.Cells.AstNodeTypes, as: AST
 
   @doc """
   Parses the user input in a cell into an expression AST.
@@ -46,7 +27,7 @@ defmodule SevenGuis.Cells.Parser do
       iex> parse_formula(~c"=sum(6, A5)")
       {:expr, {:appl, {:ident, ~c"sum"}, [int: 6, coord: {0, 4}]}}
   """
-  @spec parse_formula(charlist()) :: ast_node_formula()
+  @spec parse_formula(charlist()) :: AST.ast_node_formula()
   def parse_formula(text) do
     with {:ok, lexed, _} <- :formula_lexer.string(text),
          {:ok, parsed} <- :formula_parser.parse(lexed) do
