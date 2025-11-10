@@ -12,7 +12,7 @@ COMMA       = ,
 
 Rules.
 {LETTER}{DIGIT}+         : {token, {coord, TokenLine, to_coord(TokenChars)}}.
-{IDENTIFIER}             :{ token, {ident, TokenLine, TokenChars}}.
+{IDENTIFIER}             : {token, {ident, TokenLine, string:to_upper(TokenChars)}}.
 {DIGIT}+{PERIOD}{DIGIT}+ : {token, {float, TokenLine, list_to_float(TokenChars)}}.
 {DIGIT}+                 : {token, {int, TokenLine, list_to_integer(TokenChars)}}.
 {EQUALS}                 : {token, {equals, TokenLine}}.

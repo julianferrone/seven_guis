@@ -508,7 +508,7 @@ yyaction_0(TokenChars, TokenLine) ->
 -compile({inline,yyaction_1/2}).
 -file("src/formula_lexer.xrl", 13).
 yyaction_1(TokenChars, TokenLine) ->
-     { token, { ident, TokenLine, TokenChars } } .
+     { token, { ident, TokenLine, string : to_upper (TokenChars) } } .
 
 -compile({inline,yyaction_2/2}).
 -file("src/formula_lexer.xrl", 14).
