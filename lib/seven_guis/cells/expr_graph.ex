@@ -48,12 +48,14 @@ defmodule SevenGuis.Cells.ExprGraph do
   end
 
   def get_display_value(expr_graph, coord) do
-    get_value(expr_graph, coord)
-    |> to_charlist()
+    case get_value(expr_graph, coord) do
+      nil -> ~c""
+      other -> to_charlist(other)
+    end
   end
 
   def get_cell_info(expr_graph, coord) do
-    Map.get(expr_graph.cells, coord, {nil, nil, nil})
+    Map.get(expr_graph.cells, coord, {~c"", nil, nil})
   end
 
   # ----------------------- Subscribers ----------------------
