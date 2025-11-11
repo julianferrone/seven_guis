@@ -10,11 +10,12 @@ defmodule SevenGuis.Cells do
   @num_rows 100
   @num_cols 26
 
-  # deep blue
-  @colour_calculated {34, 34, 155}
+  # deep green
+  @colour_calculated {34, 118, 34}
   # warm black
   @colour_user_input {34, 34, 34}
 
+  @spec start_link(any()) :: {:error, any()} | {:wx_ref, any(), any(), any()}
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
