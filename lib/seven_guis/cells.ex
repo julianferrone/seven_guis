@@ -80,10 +80,59 @@ defmodule SevenGuis.Cells do
       panel: panel,
       widgets: widgets,
       expr_graph: expr_graph,
-      prev_selected: {0, 0},
+      prev_selected: {0, 0}
     }
 
     {panel, state}
+  end
+
+  def handle_event(
+        {:wx, _, _, _,
+         {
+           :wxGrid,
+           :grid_select_cell,
+           row,
+           column,
+           _,
+           _,
+           _,
+           _,
+           _,
+           _
+         }},
+        %{
+          widgets: %{grid: grid},
+          expr_graph: expr_graph,
+          prev_selected: prev_selected
+        } = state
+      ) do
+    coord = {column, row}
+    # Change previously selected cell to show value
+    display_cell_value(grid, expr_graph, prev_selected)
+    # Display user input in currently selected cell
+    display_cell_user_input(grid, expr_graph, coord)
+
+    state = %{state | prev_selected: coord}
+    {:noreply, state}
+  end
+
+  def handle_event(
+        {:wx, _, _, _, {:wxGrid, :grid_cell_changed, row, column, _, _, _, _, _, _}},
+        %{
+          widgets: %{grid: grid},
+          expr_graph: expr_graph
+        } = state
+      ) do
+    coord = {column, row}
+    user_input = :wxGrid.getCellValue(grid, row, column)
+    {expr_graph, downstream} = ExprGraph.update_cell(expr_graph, coord, user_input)
+    Enum.each(
+      downstream,
+      fn coord -> display_cell_value(grid, expr_graph, coord) end
+    )
+    state = %{state | expr_graph: expr_graph}
+
+    {:noreply, state}
   end
 
   def handle_event(request, state) do
@@ -91,9 +140,26 @@ defmodule SevenGuis.Cells do
     {:noreply, state}
   end
 
-  # _____________________ Text Formatting ____________________
+  # _______________ Changing Cell Presentation _______________
 
-  @spec text_colour(AST.ast_node_formula()) :: :wx.wx_colour()
-  def text_colour({:expr, _expr}), do: @colour_expr
-  def text_colour(_value), do: @colour_value
+  # Render expression values when not selected
+  def display_cell_value(grid, expr_graph, {col, row} = coord) do
+    case ExprGraph.get_formula(expr_graph, coord) do
+      {:expr, _expr} ->
+        value = ExprGraph.get_display_value(expr_graph, coord)
+        :wxGrid.setCellTextColour(grid, row, col, @colour_calculated)
+        :wxGrid.setCellValue(grid, row, col, value)
+
+      _other ->
+        :ok
+    end
+  end
+
+  # Render expressions when selected
+  def display_cell_user_input(grid, expr_graph, {col, row} = coord) do
+    user_input = ExprGraph.get_user_input(expr_graph, coord)
+
+    :wxGrid.setCellTextColour(grid, row, col, @colour_user_input)
+    :wxGrid.setCellValue(grid, row, col, user_input)
+  end
 end
