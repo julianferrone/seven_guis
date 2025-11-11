@@ -164,10 +164,10 @@ defmodule SevenGuis.Cells.ExprGraph do
       defined ->
         args =
           args
+          |> Enum.map(fn arg -> evaluate(expr_graph, arg) end)
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
           |> Enum.reject(fn arg -> arg == nil end)
-          |> Enum.map(fn arg -> evaluate(expr_graph, arg) end)
 
         try do
           defined.(args)
@@ -176,8 +176,6 @@ defmodule SevenGuis.Cells.ExprGraph do
             {:error, Exception.message(e)}
         end
     end
-
-    function.(args)
   end
 
   def evaluate(expr_graph, {:expr, expr}), do: evaluate(expr_graph, expr)
