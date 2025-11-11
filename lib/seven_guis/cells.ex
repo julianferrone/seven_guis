@@ -11,9 +11,9 @@ defmodule SevenGuis.Cells do
   @num_cols 26
 
   # deep blue
-  @colour_expr {34, 34, 155}
+  @colour_calculated {34, 34, 155}
   # warm black
-  @colour_value {34, 34, 34}
+  @colour_user_input {34, 34, 34}
 
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
@@ -57,20 +57,21 @@ defmodule SevenGuis.Cells do
     main_sizer = :wxBoxSizer.new(wxVERTICAL())
     :wxPanel.setSizer(panel, main_sizer)
 
-    # # Add text input cell
+    # Add text input cell
     input = :wxTextCtrl.new(panel, Id.generate_id())
     :wxBoxSizer.add(main_sizer, input)
 
-    # # Add grid
-    sheet = :wxGrid.new(panel, Id.generate_id())
-    :wxBoxSizer.add(main_sizer, sheet)
-    :wxGrid.createGrid(sheet, @num_rows, @num_cols)
-    :wxGrid.connect(sheet, :grid_select_cell)
-    :wxGrid.connect(sheet, :grid_cell_changed)
+    # Add grid
+    grid = :wxGrid.new(panel, Id.generate_id(), style: wxTE_PROCESS_ENTER())
+    :wxBoxSizer.add(main_sizer, grid)
+    :wxGrid.createGrid(grid, @num_rows, @num_cols)
+    :wxGrid.setDefaultCellTextColour(grid, @colour_user_input)
+    :wxGrid.connect(grid, :grid_select_cell)
+    :wxGrid.connect(grid, :grid_cell_changed)
 
     widgets = %{
       input: input,
-      sheet: sheet
+      grid: grid
     }
 
     expr_graph = ExprGraph.new()
