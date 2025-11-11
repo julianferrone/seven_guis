@@ -67,7 +67,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(t(), coord(), charlist()) :: t()
+  @spec update_cell(t(), coord(), charlist()) :: {t(), MapSet.t(coord())}
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
@@ -184,18 +184,23 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # -------------- Evaluate Cell and Subscribers -------------
 
-  @spec evaluate_subscribers(t(), coord()) :: t()
+  @spec evaluate_subscribers(t(), coord()) :: {t(), MapSet.t(coord())}
   def evaluate_subscribers(expr_graph, coord) do
+    evaluate_subscribers(expr_graph, MapSet.new([coord]), coord)
+  end
+
+  def evaluate_subscribers(expr_graph, changed_cells, coord) do
     subs = get_subscribers(expr_graph, coord)
+    changed_cells = MapSet.union(changed_cells, subs)
 
     Enum.reduce(
       subs,
-      expr_graph,
-      fn sub, expr_graph ->
+      {expr_graph, changed_cells},
+      fn sub, {expr_graph, changed_cells} ->
         formula = get_formula(expr_graph, sub)
         value = evaluate(expr_graph, formula)
         expr_graph = update_value(expr_graph, sub, value)
-        evaluate_subscribers(expr_graph, sub)
+        evaluate_subscribers(expr_graph, changed_cells, sub)
       end
     )
   end
