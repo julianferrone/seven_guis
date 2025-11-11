@@ -67,7 +67,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(t(), coord(), charlist()) :: {t(), MapSet.t(coord())}
+  @spec update_cell(t(), coord(), charlist()) :: {:error, t()} | {t(), MapSet.t(coord())}
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
@@ -87,9 +87,15 @@ defmodule SevenGuis.Cells.ExprGraph do
       |> subscribe(coord, publishers_to_add)
 
     updated_expr_graph = %{updated_expr_graph | subscribers: subscribers}
+    # Check for dependencies
+    case find_cycles(updated_expr_graph, coord) do
+      [] ->
+        # Re-evaluate cells that depend on this cell
+        evaluate_subscribers(updated_expr_graph, coord)
 
-    # Re-evaluate cells that depend on this cell
-    evaluate_subscribers(updated_expr_graph, coord)
+      cycles ->
+        {:error, cycles}
+    end
   end
 
   def update_value(expr_graph, coord, value) do
@@ -193,6 +199,8 @@ defmodule SevenGuis.Cells.ExprGraph do
     subs = get_subscribers(expr_graph, coord)
     changed_cells = MapSet.union(changed_cells, subs)
 
+    # Check if we've already changed a cell that's a
+
     Enum.reduce(
       subs,
       {expr_graph, changed_cells},
@@ -219,6 +227,36 @@ defmodule SevenGuis.Cells.ExprGraph do
   def dependencies({:expr, other}), do: dependencies(other)
   def dependencies({:coord, coord}), do: MapSet.new([coord])
   def dependencies(_other), do: MapSet.new()
+
+  # -------------------- Check for Cycles --------------------
+
+  def find_cycles(expr_graph, coord) do
+    find_cycles(expr_graph, coord, [coord])
+  end
+
+  @spec find_cycles(t(), coord(), [coord()]) :: [coord()]
+  def find_cycles(expr_graph, coord, recursion_path) do
+    subscribers = get_subscribers(expr_graph, coord)
+
+    empty_set = MapSet.new()
+
+    case subscribers do
+      ^empty_set ->
+        []
+
+      _nonempty ->
+        Enum.find_value(
+          subscribers,
+          fn sub ->
+            if sub in recursion_path do
+              [sub | recursion_path]
+            else
+              find_cycles(expr_graph, sub, [sub | recursion_path])
+            end
+          end
+        )
+    end
+  end
 
   # ________________________ Functions _______________________
 
