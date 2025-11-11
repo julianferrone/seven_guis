@@ -79,12 +79,9 @@ defmodule SevenGuis.Cells.ExprGraph do
     publishers_to_add = MapSet.difference(publishers_new, publishers_old)
 
     subscribers =
-      expr_graph
-      |> IO.inspect(label: "subscribers")
+      expr_graph.subscribers
       |> unsubscribe(coord, publishers_to_remove)
-      |> IO.inspect(label: "subscribers after unsubscribing")
       |> subscribe(coord, publishers_to_add)
-      |> IO.inspect(label: "subscribers after subscribing")
 
     updated_expr_graph = %{updated_expr_graph | subscribers: subscribers}
 
@@ -105,46 +102,49 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # ----------------------- Subscribers ----------------------
 
-  @spec subscribe(ExprGraph.t(), coord(), Enumerable.t(coord())) :: ExprGraph.t()
-  def subscribe(expr_graph, subscriber, publishers) do
-    subscribers =
-      Enum.reduce(
-        publishers,
-        expr_graph.subscribers,
-        fn publisher, subscribers ->
-          Map.update(
-            subscribers,
-            publisher,
-            MapSet.new([subscriber]),
-            fn subscribed ->
-              MapSet.put(subscribed, subscriber)
-            end
-          )
-        end
-      )
-
-    %{expr_graph | subscribers: subscribers}
+  @spec subscribe(
+          %{coord() => MapSet.t(coord())},
+          coord(),
+          Enumerable.t(coord())
+        ) ::
+          ExprGraph.t()
+  def subscribe(subscribers, subscriber, publishers) do
+    Enum.reduce(
+      publishers,
+      subscribers,
+      fn publisher, subscribers ->
+        Map.update(
+          subscribers,
+          publisher,
+          MapSet.new([subscriber]),
+          fn subscribed ->
+            MapSet.put(subscribed, subscriber)
+          end
+        )
+      end
+    )
   end
 
-  @spec unsubscribe(ExprGraph.t(), coord(), Enumerable.t(coord())) :: ExprGraph.t()
-  def unsubscribe(expr_graph, subscriber, publishers) do
-    subscribers =
-      Enum.reduce(
-        publishers,
-        expr_graph.subscribers,
-        fn publisher, subscribers ->
-          Map.update(
-            subscribers,
-            publisher,
-            MapSet.new(),
-            fn subscribed ->
-              MapSet.delete(subscribed, subscriber)
-            end
-          )
-        end
-      )
-
-    %{expr_graph | subscribers: subscribers}
+  @spec unsubscribe(
+          %{coord() => MapSet.t(coord())},
+          coord(),
+          Enumerable.t(coord())
+        ) :: ExprGraph.t()
+  def unsubscribe(subscribers, subscriber, publishers) do
+    Enum.reduce(
+      publishers,
+      subscribers,
+      fn publisher, subscribers ->
+        Map.update(
+          subscribers,
+          publisher,
+          MapSet.new(),
+          fn subscribed ->
+            MapSet.delete(subscribed, subscriber)
+          end
+        )
+      end
+    )
   end
 
   # __________________ Evaluating Functions __________________
