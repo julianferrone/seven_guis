@@ -20,47 +20,9 @@ defmodule SevenGuis.Cells do
   end
 
   def init([notebook]) do
-    # Look:
-    # ┌────────────────────────┐
-    # │ ┌────────────────────┐ │
-    # │ │=SUM(A3, A4)        │ │
-    # │ └────────────────────┘ │
-    # │ ┌──┬─────────────────┐ │
-    # │ │  │                 │ │
-    # │ ├──┼─────────────────┤ │
-    # │ │  │                 │ │
-    # │ │  │                 │ │
-    # │ │  │                 │ │
-    # │ │  │                 │ │
-    # │ │  │                 │ │
-    # │ └──┴─────────────────┘ │
-    # └────────────────────────┘
-
-    # Layout:
-    # Panel
-    # ┌────────────────────────┐
-    # │Vertical BoxSizer       │
-    # │┌──────────────────────┐│
-    # ││┌────────────────────┐││
-    # │││TextCtrl            │││
-    # ││└────────────────────┘││
-    # ││┌────────────────────┐││
-    # │││Grid                │││
-    # │││                    │││
-    # │││                    │││
-    # │││                    │││
-    # ││└────────────────────┘││
-    # │└──────────────────────┘│
-    # └────────────────────────┘
-
     panel = :wxPanel.new(notebook)
     main_sizer = :wxBoxSizer.new(wxVERTICAL())
     :wxPanel.setSizer(panel, main_sizer)
-
-    # Add text input cell
-    input = :wxTextCtrl.new(panel, Id.generate_id())
-    :wxBoxSizer.add(main_sizer, input)
-
     # Add grid
     grid = :wxGrid.new(panel, Id.generate_id(), style: wxTE_PROCESS_ENTER())
     :wxBoxSizer.add(main_sizer, grid)
@@ -69,16 +31,11 @@ defmodule SevenGuis.Cells do
     :wxGrid.connect(grid, :grid_select_cell)
     :wxGrid.connect(grid, :grid_cell_changed)
 
-    widgets = %{
-      input: input,
-      grid: grid
-    }
-
     expr_graph = ExprGraph.new()
 
     state = %{
       panel: panel,
-      widgets: widgets,
+      grid: grid,
       expr_graph: expr_graph,
       prev_selected: {0, 0}
     }
@@ -101,7 +58,7 @@ defmodule SevenGuis.Cells do
            _
          }},
         %{
-          widgets: %{grid: grid},
+          grid: grid,
           expr_graph: expr_graph,
           prev_selected: prev_selected
         } = state
@@ -119,17 +76,19 @@ defmodule SevenGuis.Cells do
   def handle_event(
         {:wx, _, _, _, {:wxGrid, :grid_cell_changed, row, column, _, _, _, _, _, _}},
         %{
-          widgets: %{grid: grid},
+          grid: grid,
           expr_graph: expr_graph
         } = state
       ) do
     coord = {column, row}
     user_input = :wxGrid.getCellValue(grid, row, column)
     {expr_graph, downstream} = ExprGraph.update_cell(expr_graph, coord, user_input)
+
     Enum.each(
       downstream,
       fn coord -> display_cell_value(grid, expr_graph, coord) end
     )
+
     state = %{state | expr_graph: expr_graph}
 
     {:noreply, state}
