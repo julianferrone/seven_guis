@@ -86,7 +86,7 @@ defmodule SevenGuis.Cells.ExprGraph do
     updated_expr_graph = %{updated_expr_graph | subscribers: subscribers}
 
     # Re-evaluate cells that depend on this cell
-    evaluate_recursive(updated_expr_graph, coord)
+    evaluate_subscribers(updated_expr_graph, coord)
   end
 
   def update_value(expr_graph, coord, value) do
@@ -184,16 +184,17 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # -------------- Evaluate Cell and Subscribers -------------
 
-  @spec evaluate_recursive(ExprGraph.t(), coord()) :: ExprGraph.t()
-  def evaluate_recursive(expr_graph, coord) do
-    value = evaluate(expr_graph, coord) |> IO.inspect(label: "value")
-    expr_graph = update_value(expr_graph, coord, value)
-
+  @spec evaluate_subscribers(ExprGraph.t(), coord()) :: ExprGraph.t()
+  def evaluate_subscribers(expr_graph, coord) do
+    subs = get_subscribers(expr_graph, coord)
     Enum.reduce(
-      get_subscribers(expr_graph, coord) |> IO.inspect(label: "subs"),
+      subs,
       expr_graph,
-      fn subscriber, expr_graph ->
-        evaluate_recursive(expr_graph, subscriber)
+      fn sub, expr_graph ->
+        formula = get_formula(expr_graph, sub)
+        value = evaluate(expr_graph, formula)
+        expr_graph = update_value(expr_graph, sub, value)
+        evaluate_subscribers(expr_graph, sub)
       end
     )
   end
