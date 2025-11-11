@@ -4,6 +4,8 @@ defmodule SevenGuis.Cells.ExprGraph do
   alias SevenGuis.Cells.AstNodeTypes, as: AST
   @type coord() :: {integer(), integer()}
 
+  @type subscriber_map() :: %{coord() => MapSet.t(coord())}
+
   @type t :: %ExprGraph{
           cells: %{
             coord() => {
@@ -15,7 +17,7 @@ defmodule SevenGuis.Cells.ExprGraph do
               AST.ast_node_value()
             }
           },
-          subscribers: %{coord() => MapSet.t(coord())}
+          subscribers: subscriber_map()
         }
   defstruct [:cells, :subscribers]
 
@@ -63,7 +65,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(ExprGraph.t(), coord(), charlist()) :: ExprGraph.t()
+  @spec update_cell(t(), coord(), charlist()) :: t()
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
@@ -79,8 +81,7 @@ defmodule SevenGuis.Cells.ExprGraph do
     publishers_to_add = MapSet.difference(publishers_new, publishers_old)
 
     subscribers =
-      expr_graph.subscribers
-      |> unsubscribe(coord, publishers_to_remove)
+      unsubscribe(expr_graph.subscribers, coord, publishers_to_remove)
       |> subscribe(coord, publishers_to_add)
 
     updated_expr_graph = %{updated_expr_graph | subscribers: subscribers}
@@ -103,11 +104,10 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ----------------------- Subscribers ----------------------
 
   @spec subscribe(
-          %{coord() => MapSet.t(coord())},
+          subscriber_map(),
           coord(),
           Enumerable.t(coord())
-        ) ::
-          ExprGraph.t()
+        ) :: subscriber_map()
   def subscribe(subscribers, subscriber, publishers) do
     Enum.reduce(
       publishers,
@@ -126,10 +126,10 @@ defmodule SevenGuis.Cells.ExprGraph do
   end
 
   @spec unsubscribe(
-          %{coord() => MapSet.t(coord())},
+          subscriber_map(),
           coord(),
           Enumerable.t(coord())
-        ) :: ExprGraph.t()
+        ) :: subscriber_map()
   def unsubscribe(subscribers, subscriber, publishers) do
     Enum.reduce(
       publishers,
@@ -151,7 +151,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # --------------------- Evaluate a Cell --------------------
 
-  @spec evaluate(ExprGraph.t(), AST.ast_node_formula()) :: AST.ast_node_value()
+  @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value()
   def evaluate(expr_graph, {:expr, {:appl, {:ident, function_name}, args}}) do
     function = lookup(function_name)
 
@@ -184,9 +184,10 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # -------------- Evaluate Cell and Subscribers -------------
 
-  @spec evaluate_subscribers(ExprGraph.t(), coord()) :: ExprGraph.t()
+  @spec evaluate_subscribers(t(), coord()) :: t()
   def evaluate_subscribers(expr_graph, coord) do
     subs = get_subscribers(expr_graph, coord)
+
     Enum.reduce(
       subs,
       expr_graph,
