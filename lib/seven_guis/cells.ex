@@ -64,7 +64,7 @@ defmodule SevenGuis.Cells do
           prev_selected: prev_selected
         } = state
       ) do
-    coord = {column, row}
+    coord = AST.coord(row, column)
     # Change previously selected cell to show value
     display_cell_value(grid, expr_graph, prev_selected)
     # Display user input in currently selected cell
@@ -81,7 +81,7 @@ defmodule SevenGuis.Cells do
           expr_graph: expr_graph
         } = state
       ) do
-    coord = {column, row}
+    coord = AST.coord(row, column)
     user_input = :wxGrid.getCellValue(grid, row, column)
     {expr_graph, downstream} = ExprGraph.update_cell(expr_graph, coord, user_input)
 
@@ -103,12 +103,12 @@ defmodule SevenGuis.Cells do
   # _______________ Changing Cell Presentation _______________
 
   # Render expression values when not selected
-  def display_cell_value(grid, expr_graph, {col, row} = coord) do
+  def display_cell_value(grid, expr_graph, coord) do
     case ExprGraph.get_formula(expr_graph, coord) do
       {:expr, _expr} ->
         value = ExprGraph.get_display_value(expr_graph, coord)
-        :wxGrid.setCellTextColour(grid, row, col, @colour_calculated)
-        :wxGrid.setCellValue(grid, row, col, value)
+        :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_calculated)
+        :wxGrid.setCellValue(grid, coord.row, coord.col, value)
 
       _other ->
         :ok
@@ -116,10 +116,10 @@ defmodule SevenGuis.Cells do
   end
 
   # Render expressions when selected
-  def display_cell_user_input(grid, expr_graph, {col, row} = coord) do
+  def display_cell_user_input(grid, expr_graph, coord) do
     user_input = ExprGraph.get_user_input(expr_graph, coord)
 
-    :wxGrid.setCellTextColour(grid, row, col, @colour_user_input)
-    :wxGrid.setCellValue(grid, row, col, user_input)
+    :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_user_input)
+    :wxGrid.setCellValue(grid, coord.row, coord.col, user_input)
   end
 end

@@ -15,10 +15,10 @@
 -file("src/formula_lexer.xrl", 24).
 
 to_coord([Column | Row]) ->
-    {
+    #{
         % Convert columns and rows into relative offsets
-        string:to_upper(Column) - $A,
-        list_to_integer(Row) - 1
+        col => string:to_upper(Column) - $A,
+        row => list_to_integer(Row) - 1
     }.
 
 -file("c:/Program Files/Erlang OTP/lib/parsetools-2.6/include/leexinc.hrl", 14).

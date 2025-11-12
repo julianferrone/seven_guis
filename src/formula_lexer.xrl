@@ -24,8 +24,8 @@ Rules.
 Erlang code.
 
 to_coord([Column | Row]) ->
-    {
+    #{
         % Convert columns and rows into relative offsets
-        string:to_upper(Column) - $A,
-        list_to_integer(Row) - 1
+        col => string:to_upper(Column) - $A,
+        row => list_to_integer(Row) - 1
     }.

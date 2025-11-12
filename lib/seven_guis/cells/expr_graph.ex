@@ -2,13 +2,12 @@ defmodule SevenGuis.Cells.ExprGraph do
   alias __MODULE__
   alias SevenGuis.Cells.Parser
   alias SevenGuis.Cells.AstNodeTypes, as: AST
-  @type coord() :: {integer(), integer()}
 
-  @type subscriber_map() :: %{coord() => MapSet.t(coord())}
+  @type subscriber_map() :: %{AST.coord() => MapSet.t(AST.coord())}
 
   @type t :: %ExprGraph{
           cells: %{
-            coord() => {
+            AST.coord() => {
               # User input
               charlist(),
               # Parsed expression
@@ -67,7 +66,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(t(), coord(), charlist()) :: {:error, t()} | {t(), MapSet.t(coord())}
+  @spec update_cell(t(), AST.coord(), charlist()) :: {:error, t()} | {t(), MapSet.t(AST.coord())}
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
@@ -113,8 +112,8 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   @spec subscribe(
           subscriber_map(),
-          coord(),
-          Enumerable.t(coord())
+          AST.coord(),
+          Enumerable.t(AST.coord())
         ) :: subscriber_map()
   def subscribe(subscribers, subscriber, publishers) do
     Enum.reduce(
@@ -135,8 +134,8 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   @spec unsubscribe(
           subscriber_map(),
-          coord(),
-          Enumerable.t(coord())
+          AST.coord(),
+          Enumerable.t(AST.coord())
         ) :: subscriber_map()
   def unsubscribe(subscribers, subscriber, publishers) do
     Enum.reduce(
@@ -190,7 +189,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # -------------- Evaluate Cell and Subscribers -------------
 
-  @spec evaluate_subscribers(t(), coord()) :: {t(), MapSet.t(coord())}
+  @spec evaluate_subscribers(t(), AST.coord()) :: {t(), MapSet.t(AST.coord())}
   def evaluate_subscribers(expr_graph, coord) do
     evaluate_subscribers(expr_graph, MapSet.new([coord]), coord)
   end
@@ -215,7 +214,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # ________________ Find Dependencies of Cell _______________
 
-  @spec dependencies(AST.ast_node_formula()) :: MapSet.t(coord())
+  @spec dependencies(AST.ast_node_formula()) :: MapSet.t(AST.coord())
   def dependencies({:expr, {:appl, _fn_name, args}}) do
     Enum.reduce(
       args,
@@ -234,7 +233,7 @@ defmodule SevenGuis.Cells.ExprGraph do
     find_cycles(expr_graph, coord, [coord])
   end
 
-  @spec find_cycles(t(), coord(), [coord()]) :: [coord()]
+  @spec find_cycles(t(), AST.coord(), [AST.coord()]) :: [AST.coord()]
   def find_cycles(expr_graph, coord, recursion_path) do
     subscribers = get_subscribers(expr_graph, coord)
 
