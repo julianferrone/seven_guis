@@ -261,7 +261,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ________________________ Functions _______________________
 
   # Binary arithmetic operators
-  @spec lookup(any()) :: (any() -> any()) | {:error, <<_::64, _::_*8>>}
+  @spec lookup(charlist()) :: (any() -> any()) | {:error, charlist()}
   def lookup(~c"PLUS"), do: binary_function(fn a, b -> a + b end)
   def lookup(~c"MINUS"), do: binary_function(fn a, b -> a - b end)
   def lookup(~c"MULT"), do: binary_function(fn a, b -> a * b end)
@@ -271,7 +271,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   def lookup(~c"SUM"), do: &Enum.sum/1
   def lookup(~c"PRODUCT"), do: &Enum.product/1
 
-  def lookup(undefined), do: {:error, "No such function #{undefined}"}
+  def lookup(undefined), do: {:error, ~c"No such function #{undefined}"}
 
   def binary_function(f) do
     fn args ->
