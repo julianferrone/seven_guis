@@ -66,7 +66,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(t(), AST.coord(), charlist()) :: {:error, t()} | {t(), MapSet.t(AST.coord())}
+  @spec update_cell(t(), AST.coord(), charlist()) :: {:error, t()} | {:ok, t(), MapSet.t(AST.coord())}
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
@@ -90,7 +90,8 @@ defmodule SevenGuis.Cells.ExprGraph do
     case find_cycles(updated_expr_graph, coord) do
       [] ->
         # Re-evaluate cells that depend on this cell
-        evaluate_subscribers(updated_expr_graph, coord)
+        {updated_expr_graph, downstream} = evaluate_subscribers(updated_expr_graph, coord)
+        {:ok, updated_expr_graph, downstream}
 
       cycles ->
         {:error, cycles}
