@@ -105,7 +105,13 @@ defmodule SevenGuis.FlightBooker do
   end
 
   def handle_event(
-        {:wx, _, _, _, {:wxCommand, :command_choice_selected, choice, _, _}},
+        wx(
+          event:
+            wxCommand(
+              type: :command_choice_selected,
+              cmdString: choice
+            )
+        ),
         %{
           panel: panel,
           start_date: start_date,
@@ -123,7 +129,14 @@ defmodule SevenGuis.FlightBooker do
   end
 
   def handle_event(
-        {:wx, start_date_id, _, _, {:wxCommand, :command_text_updated, start_date_text, _, _}},
+        wx(
+          id: start_date_id,
+          event:
+            wxCommand(
+              type: :command_text_updated,
+              cmdString: start_date_text
+            )
+        ),
         %{
           panel: panel,
           start_date_id: start_date_id,
@@ -142,7 +155,14 @@ defmodule SevenGuis.FlightBooker do
   end
 
   def handle_event(
-        {:wx, return_date_id, _, _, {:wxCommand, :command_text_updated, return_date_text, _, _}},
+        wx(
+          id: return_date_id,
+          event:
+            wxCommand(
+              type: :command_text_updated,
+              cmdString: return_date_text
+            )
+        ),
         %{
           panel: panel,
           start_date: start_date,
@@ -161,8 +181,15 @@ defmodule SevenGuis.FlightBooker do
   end
 
   def handle_event(
-        {:wx, booking_button_id, _, _, {:wxCommand, :command_button_clicked, _, _, _}},
-        %{panel: panel, booking_button_id: booking_button_id, widget_state: widget_state} = state
+        wx(
+          id: booking_button_id,
+          event: wxCommand(type: :command_button_clicked)
+        ),
+        %{
+          panel: panel,
+          booking_button_id: booking_button_id,
+          widget_state: widget_state
+        } = state
       ) do
     msg = flight_booking_message(widget_state)
     message_dialog = :wxMessageDialog.new(panel, msg, caption: ~c"Booked Flight")
