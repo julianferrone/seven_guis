@@ -1,7 +1,8 @@
 defmodule SevenGuis.Cells.ExprGraph do
   alias __MODULE__
-  alias SevenGuis.Cells.Parser
   alias SevenGuis.Cells.AstNodeTypes, as: AST
+  alias SevenGuis.Cells.Coord
+  alias SevenGuis.Cells.Parser
 
   @type subscriber_map() :: %{Coord.t() => MapSet.t(Coord.t())}
 
@@ -167,7 +168,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value() | {:error, charlist()}
   def evaluate(expr_graph, {:appl, {:ident, function_name}, args}) do
-    IO.inspect(expr_graph, label: "expr_graph")
+    # IO.inspect(expr_graph, label: "expr_graph")
     function = lookup(function_name)
 
     case function do
@@ -177,18 +178,21 @@ defmodule SevenGuis.Cells.ExprGraph do
       defined ->
         # Add index info for better error messages
         args =
-          Enum.with_index(args, fn arg, index -> %{index: index, arg: arg} end)
-          |> IO.inspect(label: "args 1")
+          args
+          |> preprocess_args()
+          |> Enum.with_index(fn arg, index -> %{index: index, arg: arg} end)
+          # |> IO.inspect(label: "args 1")
           |> Enum.map(fn arg ->
+            # IO.inspect(arg, label: "arg")
             value = evaluate(expr_graph, arg.arg)
-            IO.inspect(value, label: "value")
+            # IO.inspect(value, label: "value")
             Map.put(arg, :value, value)
           end)
-          |> IO.inspect(label: "args 2")
+          # |> IO.inspect(label: "args 2")
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
           |> Enum.reject(fn arg -> arg.value == nil end)
-          |> IO.inspect(label: "args 3")
+          # |> IO.inspect(label: "args 3")
 
         error_args =
           Enum.filter(args, fn arg ->
@@ -197,14 +201,14 @@ defmodule SevenGuis.Cells.ExprGraph do
               _ok -> false
             end
           end)
-          |> IO.inspect(label: "error_args")
+          # |> IO.inspect(label: "error_args")
 
         case error_args do
           [] ->
             # Strip out index info for calculation
             args =
               Enum.map(args, fn arg -> arg.value end)
-              |> IO.inspect(label: "args 4")
+              # |> IO.inspect(label: "args 4")
 
             try do
               defined.(args)
@@ -227,17 +231,37 @@ defmodule SevenGuis.Cells.ExprGraph do
 
             error_msg =
               List.flatten(~c"#{function_name} bad args (#{error_args})")
-              |> IO.inspect(label: "error_msg")
+              # |> IO.inspect(label: "error_msg")
 
             {:error, error_msg}
         end
     end
   end
 
+  def evaluate(_expr_graph, {:expr, {:range, first, second}}) do
+    first = to_charlist(first)
+    second = to_charlist(second)
+
+    error_msg =
+      ~c"Range (#{first}:#{second}) should only appear as function arguments, not in top-level formula"
+
+    {:error, error_msg}
+  end
+
   def evaluate(expr_graph, {:expr, expr}), do: evaluate(expr_graph, expr)
   def evaluate(expr_graph, {:coord, coord}), do: get_value(expr_graph, coord)
   def evaluate(_expr_graph, {_other, other_value}), do: other_value
   def evaluate(_expr_graph, nil), do: nil
+
+  # Preprocess arguments by converting ranges to lists of coords
+  def preprocess_args(args), do: Enum.flat_map(args, &preprocess_arg/1)
+
+  def preprocess_arg({:range, first, second}) do
+    Coord.range_to_coords(first, second)
+    |> Enum.map(fn coord -> {:coord, coord} end)
+  end
+
+  def preprocess_arg(other), do: [other]
 
   # -------------- Evaluate Cell and Subscribers -------------
 
@@ -276,6 +300,11 @@ defmodule SevenGuis.Cells.ExprGraph do
   end
 
   def dependencies({:expr, other}), do: dependencies(other)
+
+  def dependencies({:range, first, second}) do
+    MapSet.new(Coord.range_to_coords(first, second))
+  end
+
   def dependencies({:coord, coord}), do: MapSet.new([coord])
   def dependencies(_other), do: MapSet.new()
 
