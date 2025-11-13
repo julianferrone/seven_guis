@@ -180,7 +180,7 @@ defmodule SevenGuis.Cells.ExprGraph do
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
           |> Enum.reject(fn {_index, arg} -> arg == nil end)
-          |> IO.inspect(label: "args")
+          # |> IO.inspect(label: "args")
 
         error_args =
           Enum.filter(args, fn arg ->
@@ -189,7 +189,7 @@ defmodule SevenGuis.Cells.ExprGraph do
               _ok -> false
             end
           end)
-          |> IO.inspect(label: "error_args")
+          # |> IO.inspect(label: "error_args")
 
         case error_args do
           [] ->
