@@ -12,7 +12,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 - [x] Timer
 - [x] CRUD
 - [x] Circle Drawer
-- [ ] Cells
+- [x] Cells
 
 ## In Action
 
@@ -39,3 +39,13 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 ### Circle Drawer
 
 ![Seven GUIs in Elixir - Circle Drawer](https://github.com/user-attachments/assets/ec8981d3-053f-46ce-add6-0a15881696cd)
+
+### Cells
+
+![Seven GUIs in Elixir - Cells](https://github.com/user-attachments/assets/6e20f923-5979-4870-8935-a73b468e5b26)
+
+* Int, float, text literals
+* Cell and range references
+* Function application with reactive value propagation
+* Detailed error messages
+* Cyclical reference checking
