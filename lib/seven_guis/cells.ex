@@ -1,7 +1,24 @@
 defmodule SevenGuis.Cells do
+  @moduledoc """
+  Spreadsheet GUI component using WxEx.
+
+  This module implements a `:wx_object` behaviour to create and manage
+  a spreadsheet-like grid interface. The spreadsheet is backed by an
+  `ExprGraph` that tracks user input, parsed formulas, calculated
+  values, and dependencies.
+
+  Features include:
+
+    * A configurable grid of cells (`@num_rows` × `@num_cols`)
+    * Cell selection and editing events
+    * Automatic evaluation of formulas via `ExprGraph`
+    * Color-coded cell content:
+      - Deep green (`@colour_calculated`) for calculated values
+      - Warm black (`@colour_user_input`) for user-entered values
+      - Grey (`@colour_empty_expr`) for empty cells
+  """
   use WxEx
 
-  alias SevenGuis.Cells.AstNodeTypes, as: AST
   alias SevenGuis.Cells.Coord
   alias SevenGuis.Cells.ExprGraph
   alias SevenGuis.Id
@@ -11,18 +28,61 @@ defmodule SevenGuis.Cells do
   @num_rows 100
   @num_cols 26
 
-  # deep green
   @colour_calculated {34, 118, 34}
   # warm black
   @colour_user_input {34, 34, 34}
   # grey
   @colour_empty_expr {160, 160, 160}
 
+  @doc """
+  Starts the spreadsheet GUI process linked to the calling process.
+
+  ## Parameters
+
+    * `notebook` — a WxEx notebook (tabbed container) to host the spreadsheet panel
+
+  ## Returns
+
+    * `{:error, reason}` — if process creation failed
+    * `{:wx_ref, module, pid, state}` — on successful creation
+
+  ## Example
+
+      iex> {:wx_ref, _module, pid, _state} = SevenGuis.Cells.Grid.start_link(notebook)
+  """
   @spec start_link(any()) :: {:error, any()} | {:wx_ref, any(), any(), any()}
   def start_link(notebook) do
     :wx_object.start_link(__MODULE__, [notebook], [])
   end
 
+  @doc """
+  Initializes the spreadsheet panel and grid.
+
+  Sets up the panel, sizer, and grid with default properties, attaches
+  event handlers, and initializes an empty `ExprGraph` for managing
+  cell values and dependencies.
+
+  ## Parameters
+
+    * `[notebook]` — a single-element list containing the notebook to host the panel
+
+  ## Returns
+
+    * `{panel, state}` — the panel reference and initial state map
+
+  ## State Keys
+
+    * `:panel` — the WxEx panel containing the grid
+    * `:grid` — the WxEx grid control
+    * `:expr_graph` — the `ExprGraph` managing spreadsheet data
+    * `:prev_selected` — the previously selected cell (`Coord.t()`), initialized to `{0, 0}`
+
+  ## Example
+
+      iex> {panel, state} = SevenGuis.Cells.Grid.init([notebook])
+      iex> state.expr_graph
+      %SevenGuis.Cells.ExprGraph{cells: %{}, subscribers: %{}}
+  """
   def init([notebook]) do
     panel = :wxPanel.new(notebook)
     main_sizer = :wxBoxSizer.new(wxVERTICAL())
@@ -47,6 +107,10 @@ defmodule SevenGuis.Cells do
     {panel, state}
   end
 
+  # _____________________ Handling Events ____________________
+
+  # ------------------- User Selected Cell -------------------
+
   def handle_event(
         wx(event: wxGrid(type: :grid_select_cell, row: row, col: col)),
         %{
@@ -65,6 +129,8 @@ defmodule SevenGuis.Cells do
     {:noreply, state}
   end
 
+  # -------------------- User Changed Cell -------------------
+
   def handle_event(
         wx(event: wxGrid(type: :grid_cell_changed, row: row, col: col)),
         %{
@@ -75,9 +141,6 @@ defmodule SevenGuis.Cells do
       ) do
     coord = Coord.coord(row, col)
     user_input = :wxGrid.getCellValue(grid, row, col)
-    # TODO: Add a check if update_cell returns an error.
-    # If so, set the values of all the cells in the cycle to something like
-    # "ERROR: Cyclical references <cells in cycle1>"
 
     state =
       case ExprGraph.update_cell(expr_graph, coord, user_input) do
@@ -91,7 +154,7 @@ defmodule SevenGuis.Cells do
 
         {:error, cycles} ->
           # Show failure dialog
-          cyclical_error_dialog(
+          dialog_error_cyclical(
             panel,
             expr_graph,
             coord,
@@ -116,7 +179,36 @@ defmodule SevenGuis.Cells do
 
   # ---------------------- Error Dialog ----------------------
 
-  def cyclical_error_dialog(parent, expr_graph, coord, user_input, cycles) do
+  @doc """
+  Displays a modal error dialog when a user input introduces a cyclical dependency.
+
+  This function informs the user that the attempted input would create a
+  cycle in the spreadsheet's dependency graph. It shows which cells
+  reference each other and reverts the edited cell to its previous value.
+
+  ## Parameters
+
+    * `parent` — the parent WxEx window for the dialog
+    * `expr_graph` — the `%ExprGraph{}` containing current cell data
+    * `coord` — the `%Coord{}` of the cell where the cycle was attempted
+    * `user_input` — the attempted input that caused the cycle
+    * `cycles` — a list of `%Coord{}` forming the cyclical dependency
+
+  ## Returns
+
+    * The result of `:wxMessageDialog.showModal/1` (typically `wxID_OK`)
+  """
+  @spec dialog_error_cyclical(
+          :wxWindow.wxWindow(),
+          ExprGraph.t(),
+          Coord.t(),
+          charlist(),
+          [
+            Coord.t()
+          ]
+        ) ::
+          integer()
+  def dialog_error_cyclical(parent, expr_graph, coord, user_input, cycles) do
     previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
     charlist_coord = to_charlist(coord)
 
@@ -146,6 +238,23 @@ defmodule SevenGuis.Cells do
     :wxMessageDialog.showModal(dialog)
   end
 
+  @doc """
+  Generates a list of formatted lines describing cell references in a cycle.
+
+  Each line describes which cell refers to which, including the user input
+  that caused the reference. Used by `cyclical_error_dialog/5`.
+
+  ## Parameters
+
+    * `expr_graph` — the `%ExprGraph{}` containing cell data
+    * `cycles` — a list of `%Coord{}` forming the cycle
+    * `attempted_user_input` — the user input that triggered the cycle
+
+  ## Returns
+
+    * A list of charlists representing each reference in the cycle
+  """
+  @spec reference_lines(ExprGraph.t(), [Coord.t()], charlist()) :: [charlist()]
   def reference_lines(expr_graph, cycles, attempted_user_input) do
     [[first_from, first_to] | rows] =
       Enum.chunk_every(
@@ -166,6 +275,25 @@ defmodule SevenGuis.Cells do
     [first_line | remaining_lines]
   end
 
+  @doc """
+  Formats a single reference line describing that one cell refers to another.
+
+  ## Parameters
+
+    * `from` — the `%Coord{}` of the referring cell
+    * `to` — the `%Coord{}` of the referred cell
+    * `user_input` — the user input in the `from` cell
+
+  ## Returns
+
+    * A charlist representing the reference in human-readable form
+
+  ## Example
+
+      iex> references(%Coord{row: 0, col: 0}, %Coord{row: 0, col: 1}, ~c"=B1")
+      ~c"0:0 refers to 0:1: \"=B1\""
+  """
+  @spec references(Coord.t(), Coord.t(), charlist()) :: charlist()
   def references(from, to, user_input) do
     from = to_charlist(from)
     to = to_charlist(to)
@@ -174,7 +302,36 @@ defmodule SevenGuis.Cells do
 
   # _______________ Changing Cell Presentation _______________
 
-  # Render expression values when not selected
+  @doc """
+  Displays the calculated value of a cell in the grid.
+
+  This function is used when a cell loses focus or when the grid needs
+  to show the result of a formula. Depending on the cell's state, it
+  either shows the evaluated value, a placeholder for empty expressions,
+  or the user input for non-formula cells.
+
+  ## Parameters
+
+    * `grid` — the WxEx grid control
+    * `expr_graph` — the `%ExprGraph{}` containing cell formulas and values
+    * `coord` — the `%Coord{}` of the cell to update
+
+  ## Behavior
+
+    1. Checks if the cell contains a formula:
+        * If so, gets its display value:
+            - If empty (`[]`), shows the user input in italic grey.
+            - If a value exists, shows it in normal font and deep green.
+        * Forces the grid to refresh.
+    2. If the cell is not a formula, falls back to displaying the user input
+       using `display_cell_user_input/3`.
+
+  ## Example
+
+      iex> display_cell_value(grid, expr_graph, %Coord{row: 0, col: 0})
+      :ok
+  """
+  @spec display_cell_value(:wxGrid.grid(), ExprGraph.t(), Coord.t()) :: :ok
   def display_cell_value(grid, expr_graph, coord) do
     case ExprGraph.get_formula(expr_graph, coord) do
       {:expr, _expr} ->
@@ -198,7 +355,32 @@ defmodule SevenGuis.Cells do
     end
   end
 
-  # Render expressions when selected
+  @doc """
+  Displays the user-entered input in a specific cell of the grid.
+
+  This function is used when a cell is selected, so that the user
+  sees the raw input they typed rather than the calculated value.
+
+  ## Parameters
+
+    * `grid` — the WxEx grid control
+    * `expr_graph` — the `%ExprGraph{}` containing cell values and formulas
+    * `coord` — the `%Coord{}` of the cell to update
+
+  ## Behavior
+
+    1. Retrieves the user input for the specified cell from `ExprGraph`.
+    2. Sets the cell font to normal (`wxNORMAL_FONT()`).
+    3. Sets the cell text color to `@colour_user_input` (warm black).
+    4. Updates the cell value in the grid to show the user input.
+    5. Forces a grid refresh to apply the changes immediately.
+
+  ## Example
+
+      iex> display_cell_user_input(grid, expr_graph, %Coord{row: 0, col: 0})
+      :ok
+  """
+  @spec display_cell_user_input(:wxGrid.grid(), ExprGraph.t(), Coord.t()) :: :ok
   def display_cell_user_input(grid, expr_graph, coord) do
     user_input = ExprGraph.get_user_input(expr_graph, coord)
 

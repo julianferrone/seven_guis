@@ -50,6 +50,39 @@ defmodule SevenGuis.Cells.Parser do
     |> IO.inspect(label: "parsed")
   end
 
+  @doc """
+  Converts a parsed formula AST from generic map-based nodes into
+  fully structured nodes using `%SevenGuis.Cells.Coord{}` and typed tuples.
+
+  This function recursively traverses an AST produced by the formula parser,
+  normalizing its representation for later evaluation.
+
+  In particular, any coordinate maps are replaced by `%Coord{}` structs,
+  and nested expressions or applications are recursively converted.
+
+  ## Examples
+
+      iex> alias SevenGuis.Cells.{Coord, Parser}
+      iex> parsed = {:range, {:coord, %{row: 0, col: 0}}, {:coord, %{row: 1, col: 1}}}
+      iex> Parser.reparse(parsed)
+      {:range, %Coord{row: 0, col: 0}, %Coord{row: 1, col: 1}}
+
+      iex> expr = {:expr, {:appl, {:ident, 'SUM'}, [{:coord, %{row: 0, col: 0}}]}}
+      iex> Parser.reparse(expr)
+      {:expr, {:appl, {:ident, 'SUM'}, [{:coord, %Coord{row: 0, col: 0}}]}}
+
+  ## Pattern Clauses
+
+    * `{:coord, coord}` — converts a coordinate map to a `%Coord{}` struct.
+    * `{:range, {:coord, first}, {:coord, second}}` — converts a range of coordinates.
+    * `{:expr, expr}` — recursively reparses an expression node.
+    * `{:appl, ident, args}` — reparses a function application and its arguments.
+    * `other` — leaves any unrecognized term unchanged.
+
+  ## Returns
+
+  A tuple-based AST suitable for evaluation and serialization.
+  """
   # Convert parsed formula from maps to structs
   def reparse({:coord, coord}), do: {:coord, Coord.coord(coord)}
   def reparse({:expr, expr}), do: {:expr, reparse(expr)}
