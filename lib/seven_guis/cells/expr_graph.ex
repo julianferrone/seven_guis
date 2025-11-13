@@ -49,6 +49,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   def get_display_value(expr_graph, coord) do
     case get_value(expr_graph, coord) do
       nil -> ~c""
+      {:error, msg} -> ~c"ERROR: #{msg}"
       other -> to_charlist(other)
     end
   end
@@ -66,8 +67,8 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
+  # List of coords in cycle
   @spec update_cell(t(), AST.coord(), charlist()) ::
-          # List of coords in cycle
           {:error, list(AST.coord())}
           # 1. Updated expression graph
           # 2. Set of coords that were updated
@@ -164,7 +165,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   # --------------------- Evaluate a Cell --------------------
 
-  @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value()
+  @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value() | {:error, charlist()}
   def evaluate(expr_graph, {:expr, {:appl, {:ident, function_name}, args}}) do
     function = lookup(function_name)
 
@@ -174,17 +175,44 @@ defmodule SevenGuis.Cells.ExprGraph do
 
       defined ->
         args =
-          args
-          |> Enum.map(fn arg -> evaluate(expr_graph, arg) end)
+          Enum.with_index(args, fn element, index -> {index, element} end)
+          |> Enum.map(fn {index, arg} -> {index, evaluate(expr_graph, arg)} end)
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
-          |> Enum.reject(fn arg -> arg == nil end)
+          |> Enum.reject(fn {_index, arg} -> arg == nil end)
+          |> IO.inspect(label: "args")
 
-        try do
-          defined.(args)
-        rescue
-          e ->
-            {:error, Exception.message(e)}
+        error_args =
+          Enum.filter(args, fn arg ->
+            case arg do
+              {_index, {:error, _msg}} -> true
+              _ok -> false
+            end
+          end)
+          |> IO.inspect(label: "error_args")
+
+        case error_args do
+          [] ->
+            try do
+              defined.(args)
+            rescue
+              e ->
+                {:error, to_charlist(Exception.message(e))}
+            end
+
+          error_args ->
+            error_args =
+              Enum.map_intersperse(
+                error_args,
+                ~c", ",
+                fn {index, {:error, msg}} ->
+                  ~c"#{index}: #{msg}"
+                end
+              )
+              |> List.flatten()
+
+            error_msg = List.flatten(~c"#{function_name} bad args (#{error_args})")
+            {:error, error_msg}
         end
     end
   end
@@ -276,7 +304,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   def lookup(~c"SUM"), do: &Enum.sum/1
   def lookup(~c"PRODUCT"), do: &Enum.product/1
 
-  def lookup(undefined), do: {:error, ~c"No such function #{undefined}"}
+  def lookup(undefined), do: {:error, ~c"No function #{undefined}"}
 
   def binary_function(f) do
     fn args ->
