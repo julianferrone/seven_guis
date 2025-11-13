@@ -167,6 +167,7 @@ defmodule SevenGuis.Cells.ExprGraph do
 
   @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value() | {:error, charlist()}
   def evaluate(expr_graph, {:expr, {:appl, {:ident, function_name}, args}}) do
+    IO.inspect(expr_graph, label: "expr_graph")
     function = lookup(function_name)
 
     case function do
@@ -177,16 +178,16 @@ defmodule SevenGuis.Cells.ExprGraph do
         # Add index info for better error messages
         args =
           Enum.with_index(args, fn arg, index -> %{index: index, arg: arg} end)
-          # |> IO.inspect(label: "args 1")
+          |> IO.inspect(label: "args 1")
           |> Enum.map(fn arg ->
             value = evaluate(expr_graph, arg.arg)
             Map.put(arg, :value, value)
           end)
-          # |> IO.inspect(label: "args 2")
+          |> IO.inspect(label: "args 2")
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
           |> Enum.reject(fn arg -> arg.value == nil end)
-          # |> IO.inspect(label: "args 3")
+          |> IO.inspect(label: "args 3")
 
         error_args =
           Enum.filter(args, fn arg ->
@@ -200,7 +201,7 @@ defmodule SevenGuis.Cells.ExprGraph do
         case error_args do
           [] ->
             # Strip out index info for calculation
-            args = Enum.map(args, fn arg -> arg.value end)
+            args = Enum.map(args, fn arg -> arg.value end) |> IO.inspect(label: "args 4")
 
             try do
               defined.(args)
@@ -230,6 +231,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   def evaluate(expr_graph, {:expr, expr}), do: evaluate(expr_graph, expr)
   def evaluate(expr_graph, {:coord, coord}), do: get_value(expr_graph, coord)
   def evaluate(_expr_graph, {_other, other_value}), do: other_value
+  def evaluate(_expr_graph, nil), do: nil
 
   # -------------- Evaluate Cell and Subscribers -------------
 

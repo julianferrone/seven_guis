@@ -28,6 +28,7 @@ defmodule SevenGuis.Cells.Parser do
       {:expr, {:appl, {:ident, ~c"sum"}, [int: 6, coord: {0, 4}]}}
   """
   @spec parse_formula(charlist()) :: AST.ast_node_formula()
+  def parse_formula(~c""), do: nil
   def parse_formula(text) do
     with {:ok, lexed, _} <- :formula_lexer.string(text),
          {:ok, parsed} <- :formula_parser.parse(lexed) do
