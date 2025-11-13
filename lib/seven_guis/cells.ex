@@ -102,12 +102,11 @@ defmodule SevenGuis.Cells do
 
         {:error, cycles} ->
           # Show failure dialog
-          previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
-
           cyclical_error_dialog(
             panel,
+            expr_graph,
             coord,
-            previous_user_input,
+            user_input,
             cycles
           )
 
@@ -124,39 +123,73 @@ defmodule SevenGuis.Cells do
     {:noreply, state}
   end
 
-  def cyclical_error_dialog(parent, coord, previous_user_input, cycles) do
+  # __________________ Display Error Dialog __________________
+
+  # ---------------------- Error Dialog ----------------------
+
+  def cyclical_error_dialog(parent, expr_graph, coord, user_input, cycles) do
     # I wanted to use map_join but turns out it only works on
     # String.t(), not charlists
     # so instead we intersperse and then flatten the charlist
-    coord = AST.coord_to_charlist(coord)
-
-    cycles =
+    charlist_cycles =
       Enum.map_intersperse(
         cycles,
         ~c" => ",
         &AST.coord_to_charlist/1
       )
 
-    error_message =
+    previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
+    charlist_coord = AST.coord_to_charlist(coord)
+
+    lines =
       Enum.intersperse(
-        [
-          ~c"ERROR: Cyclical references",
-          ~c"Input for #{coord} has cycles: #{cycles}",
-          ~c"Replacing with previous input: \"#{previous_user_input}\""
-        ],
-        ~c"\n\n"
+        reference_lines(expr_graph, cycles, user_input),
+        ~c"\n"
       )
       |> List.flatten()
 
+    error_message = ~c"""
+    Input for #{charlist_coord} has cycles:
+
+    #{lines}
+
+    Replacing #{charlist_coord} with previous input: \"#{previous_user_input}\"
+    """
     dialog =
       :wxMessageDialog.new(
         parent,
         error_message,
-        caption: ~c"Cycles Error!",
+        caption: ~c"ERROR: Cyclical References",
         style: wxICON_ERROR()
       )
 
     :wxMessageDialog.showModal(dialog)
+  end
+
+  def reference_lines(expr_graph, cycles, attempted_user_input) do
+    [[first_from, first_to] | rows] =
+      Enum.chunk_every(
+        cycles,
+        2,
+        1,
+        :discard
+      )
+
+    first_line = references(first_from, first_to, attempted_user_input)
+
+    remaining_lines =
+      Enum.map(rows, fn [from, to] ->
+        user_input = ExprGraph.get_user_input(expr_graph, from)
+        references(from, to, user_input)
+      end)
+
+    [first_line | remaining_lines]
+  end
+
+  def references(from, to, user_input) do
+    from = AST.coord_to_charlist(from)
+    to = AST.coord_to_charlist(to)
+    ~c"#{from} refers to #{to}: \"#{user_input}\""
   end
 
   # _______________ Changing Cell Presentation _______________
