@@ -2,6 +2,7 @@ defmodule SevenGuis.Cells do
   use WxEx
 
   alias SevenGuis.Cells.AstNodeTypes, as: AST
+  alias SevenGuis.Cells.Coord
   alias SevenGuis.Cells.ExprGraph
   alias SevenGuis.Id
 
@@ -40,7 +41,7 @@ defmodule SevenGuis.Cells do
       panel: panel,
       grid: grid,
       expr_graph: expr_graph,
-      prev_selected: AST.coord(0, 0)
+      prev_selected: Coord.coord(0, 0)
     }
 
     {panel, state}
@@ -54,7 +55,7 @@ defmodule SevenGuis.Cells do
           prev_selected: prev_selected
         } = state
       ) do
-    coord = AST.coord(row, col)
+    coord = Coord.coord(row, col)
     # Change previously selected cell to show value
     display_cell_value(grid, expr_graph, prev_selected)
     # Display user input in currently selected cell
@@ -72,7 +73,7 @@ defmodule SevenGuis.Cells do
           expr_graph: expr_graph
         } = state
       ) do
-    coord = AST.coord(row, col)
+    coord = Coord.coord(row, col)
     user_input = :wxGrid.getCellValue(grid, row, col)
     # TODO: Add a check if update_cell returns an error.
     # If so, set the values of all the cells in the cycle to something like
@@ -117,7 +118,7 @@ defmodule SevenGuis.Cells do
 
   def cyclical_error_dialog(parent, expr_graph, coord, user_input, cycles) do
     previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
-    charlist_coord = AST.coord_to_charlist(coord)
+    charlist_coord = to_charlist(coord)
 
     lines =
       Enum.intersperse(
@@ -166,8 +167,8 @@ defmodule SevenGuis.Cells do
   end
 
   def references(from, to, user_input) do
-    from = AST.coord_to_charlist(from)
-    to = AST.coord_to_charlist(to)
+    from = to_charlist(from)
+    to = to_charlist(to)
     ~c"#{from} refers to #{to}: \"#{user_input}\""
   end
 
