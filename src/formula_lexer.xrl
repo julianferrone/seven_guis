@@ -9,6 +9,7 @@ PAREN_OPEN  = \(
 PAREN_CLOSE = \)
 PERIOD      = \.
 COMMA       = ,
+COLON       = :
 
 Rules.
 {LETTER}{DIGIT}+         : {token, {coord, TokenLine, to_coord(TokenChars)}}.
@@ -19,6 +20,7 @@ Rules.
 {PAREN_OPEN}             : {token, {paren_open, TokenLine}}.
 {PAREN_CLOSE}            : {token, {paren_close, TokenLine}}.
 {COMMA}                  : {token, {comma, TokenLine}}.
+{COLON}                  : {token, {colon, TokenLine}}.
 {WHITESPACE}+            : skip_token.
 
 Erlang code.
