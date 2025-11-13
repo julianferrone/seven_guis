@@ -42,7 +42,7 @@ These aren't the prettiest GUI implementations, as I'm not aiming to produce pol
 
 ### Cells
 
-![Seven GUIs in Elixir - Cells](https://github.com/user-attachments/assets/6e20f923-5979-4870-8935-a73b468e5b26)
+![Seven GUIs in Elixir - Cells](https://github.com/user-attachments/assets/be420fca-9f36-4f3d-8744-0e92a955a8c0)
 
 * Int, float, text literals
 * Cell and range references
