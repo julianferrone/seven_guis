@@ -4,9 +4,17 @@ defmodule SevenGuis.Cells.Coord do
   @type t() :: %Coord{row: non_neg_integer(), col: non_neg_integer()}
   defstruct row: 0, col: 0
 
+  @spec coord(%{
+          row: non_neg_integer(),
+          col: non_neg_integer()
+        }) :: t()
+  def coord(%{row: row, col: col}) do
+    %Coord{row: row, col: col}
+  end
+
   @spec coord(non_neg_integer(), non_neg_integer()) :: t()
   def coord(row, col) do
-    %{row: row, col: col}
+    %Coord{row: row, col: col}
   end
 
   @spec range_to_coords(t(), t()) :: list(t())
