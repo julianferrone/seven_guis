@@ -71,7 +71,7 @@ defmodule SevenGuis.Cells do
     display_cell_value(grid, expr_graph, prev_selected)
     # Display user input in currently selected cell
     display_cell_user_input(grid, expr_graph, coord)
-
+    :wxGrid.forceRefresh(grid)
     state = %{state | prev_selected: coord}
     {:noreply, state}
   end
@@ -79,20 +79,42 @@ defmodule SevenGuis.Cells do
   def handle_event(
         {:wx, _, _, _, {:wxGrid, :grid_cell_changed, row, column, _, _, _, _, _, _}},
         %{
+          panel: panel,
           grid: grid,
           expr_graph: expr_graph
         } = state
       ) do
     coord = AST.coord(row, column)
     user_input = :wxGrid.getCellValue(grid, row, column)
-    {expr_graph, downstream} = ExprGraph.update_cell(expr_graph, coord, user_input)
+    # TODO: Add a check if update_cell returns an error.
+    # If so, set the values of all the cells in the cycle to something like
+    # "ERROR: Cyclical references <cells in cycle1>"
 
-    Enum.each(
-      downstream,
-      fn coord -> display_cell_value(grid, expr_graph, coord) end
-    )
+    state =
+      case ExprGraph.update_cell(expr_graph, coord, user_input) do
+        {:ok, expr_graph, downstream} ->
+          Enum.each(
+            downstream,
+            fn coord -> display_cell_value(grid, expr_graph, coord) end
+          )
 
-    state = %{state | expr_graph: expr_graph}
+          %{state | expr_graph: expr_graph}
+
+        {:error, cycles} ->
+          # Show failure dialog
+          previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
+
+          cyclical_error_dialog(
+            panel,
+            coord,
+            previous_user_input,
+            cycles
+          )
+
+          # Reset cell to previous value after failed
+          display_cell_user_input(grid, expr_graph, coord)
+          state
+      end
 
     {:noreply, state}
   end
@@ -100,6 +122,41 @@ defmodule SevenGuis.Cells do
   def handle_event(request, state) do
     IO.inspect(request: request, state: state)
     {:noreply, state}
+  end
+
+  def cyclical_error_dialog(parent, coord, previous_user_input, cycles) do
+    # I wanted to use map_join but turns out it only works on
+    # String.t(), not charlists
+    # so instead we intersperse and then flatten the charlist
+    coord = AST.coord_to_charlist(coord)
+
+    cycles =
+      Enum.map_intersperse(
+        cycles,
+        ~c" => ",
+        &AST.coord_to_charlist/1
+      )
+
+    error_message =
+      Enum.intersperse(
+        [
+          ~c"ERROR: Cyclical references",
+          ~c"Input for #{coord} has cycles: #{cycles}",
+          ~c"Replacing with previous input: \"#{previous_user_input}\""
+        ],
+        ~c"\n\n"
+      )
+      |> List.flatten()
+
+    dialog =
+      :wxMessageDialog.new(
+        parent,
+        error_message,
+        caption: ~c"Cycles Error!",
+        style: wxICON_ERROR()
+      )
+
+    :wxMessageDialog.showModal(dialog)
   end
 
   # _______________ Changing Cell Presentation _______________
