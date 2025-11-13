@@ -1,5 +1,6 @@
 defmodule SevenGuis.Cells.Parser do
   alias SevenGuis.Cells.AstNodeTypes, as: AST
+  alias SevenGuis.Cells.Coord
 
   @doc """
   Parses the user input in a cell into an expression AST.
@@ -36,14 +37,30 @@ defmodule SevenGuis.Cells.Parser do
   """
   @spec parse_formula(charlist()) :: AST.ast_node_formula()
   def parse_formula(~c""), do: nil
+
   def parse_formula(text) do
     with {:ok, lexed, _} <- :formula_lexer.string(text),
          {:ok, parsed} <- :formula_parser.parse(lexed) do
-      parsed
+      reparse(parsed)
     else
       # If we don't parse in a float or an expression, parse as text
       # by pulling the entire string
       _error -> {:text, text}
     end
+    |> IO.inspect(label: "parsed")
   end
+
+  # Convert parsed formula from maps to structs
+  def reparse({:coord, coord}), do: {:coord, Coord.coord(coord)}
+  def reparse({:expr, expr}), do: {:expr, reparse(expr)}
+
+  def reparse({:range, {:coord, first}, {:coord, second}}) do
+    {:range, Coord.coord(first), Coord.coord(second)}
+  end
+
+  def reparse({:appl, ident, args}) do
+    {:appl, reparse(ident), Enum.map(args, &reparse/1)}
+  end
+
+  def reparse(other), do: other
 end
