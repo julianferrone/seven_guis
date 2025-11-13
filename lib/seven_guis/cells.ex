@@ -38,7 +38,7 @@ defmodule SevenGuis.Cells do
       panel: panel,
       grid: grid,
       expr_graph: expr_graph,
-      prev_selected: {0, 0}
+      prev_selected: AST.coord(0, 0)
     }
 
     {panel, state}
