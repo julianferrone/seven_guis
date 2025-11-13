@@ -66,7 +66,12 @@ defmodule SevenGuis.Cells.ExprGraph do
   # ____________________ Update ExprGraph ____________________
 
   # ------------------- Expressions/Values -------------------
-  @spec update_cell(t(), AST.coord(), charlist()) :: {:error, t()} | {:ok, t(), MapSet.t(AST.coord())}
+  @spec update_cell(t(), AST.coord(), charlist()) ::
+          # List of coords in cycle
+          {:error, list(AST.coord())}
+          # 1. Updated expression graph
+          # 2. Set of coords that were updated
+          | {:ok, t(), MapSet.t(AST.coord())}
   def update_cell(expr_graph, coord, user_input) do
     # Update cell information
     formula = Parser.parse_formula(user_input)
