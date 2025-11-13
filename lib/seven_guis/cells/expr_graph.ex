@@ -166,7 +166,7 @@ defmodule SevenGuis.Cells.ExprGraph do
   # --------------------- Evaluate a Cell --------------------
 
   @spec evaluate(t(), AST.ast_node_formula()) :: AST.ast_node_value() | {:error, charlist()}
-  def evaluate(expr_graph, {:expr, {:appl, {:ident, function_name}, args}}) do
+  def evaluate(expr_graph, {:appl, {:ident, function_name}, args}) do
     IO.inspect(expr_graph, label: "expr_graph")
     function = lookup(function_name)
 
@@ -181,6 +181,7 @@ defmodule SevenGuis.Cells.ExprGraph do
           |> IO.inspect(label: "args 1")
           |> Enum.map(fn arg ->
             value = evaluate(expr_graph, arg.arg)
+            IO.inspect(value, label: "value")
             Map.put(arg, :value, value)
           end)
           |> IO.inspect(label: "args 2")
@@ -201,7 +202,9 @@ defmodule SevenGuis.Cells.ExprGraph do
         case error_args do
           [] ->
             # Strip out index info for calculation
-            args = Enum.map(args, fn arg -> arg.value end) |> IO.inspect(label: "args 4")
+            args =
+              Enum.map(args, fn arg -> arg.value end)
+              |> IO.inspect(label: "args 4")
 
             try do
               defined.(args)
@@ -216,13 +219,16 @@ defmodule SevenGuis.Cells.ExprGraph do
               Enum.map_intersperse(
                 error_args,
                 ~c", ",
-                fn {index, {:error, msg}} ->
+                fn %{index: index, value: {:error, msg}} ->
                   ~c"#{index}: #{msg}"
                 end
               )
               |> List.flatten()
 
-            error_msg = List.flatten(~c"#{function_name} bad args (#{error_args})")
+            error_msg =
+              List.flatten(~c"#{function_name} bad args (#{error_args})")
+              |> IO.inspect(label: "error_msg")
+
             {:error, error_msg}
         end
     end
