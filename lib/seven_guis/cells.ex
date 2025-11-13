@@ -14,6 +14,8 @@ defmodule SevenGuis.Cells do
   @colour_calculated {34, 118, 34}
   # warm black
   @colour_user_input {34, 34, 34}
+  # grey
+  @colour_empty_expr {160, 160, 160}
 
   @spec start_link(any()) :: {:error, any()} | {:wx_ref, any(), any(), any()}
   def start_link(notebook) do
@@ -106,12 +108,23 @@ defmodule SevenGuis.Cells do
   def display_cell_value(grid, expr_graph, coord) do
     case ExprGraph.get_formula(expr_graph, coord) do
       {:expr, _expr} ->
-        value = ExprGraph.get_display_value(expr_graph, coord)
-        :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_calculated)
-        :wxGrid.setCellValue(grid, coord.row, coord.col, value)
+        case ExprGraph.get_display_value(expr_graph, coord) do
+          [] ->
+            user_input = ExprGraph.get_user_input(expr_graph, coord)
+            :wxGrid.setCellFont(grid, coord.row, coord.col, wxITALIC_FONT())
+            :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_empty_expr)
+            :wxGrid.setCellValue(grid, coord.row, coord.col, user_input)
+
+          value ->
+            :wxGrid.setCellFont(grid, coord.row, coord.col, wxNORMAL_FONT())
+            :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_calculated)
+            :wxGrid.setCellValue(grid, coord.row, coord.col, value)
+        end
+
+        :wxGrid.forceRefresh(grid)
 
       _other ->
-        :ok
+        display_cell_user_input(grid, expr_graph, coord)
     end
   end
 
@@ -119,7 +132,9 @@ defmodule SevenGuis.Cells do
   def display_cell_user_input(grid, expr_graph, coord) do
     user_input = ExprGraph.get_user_input(expr_graph, coord)
 
+    :wxGrid.setCellFont(grid, coord.row, coord.col, wxNORMAL_FONT())
     :wxGrid.setCellTextColour(grid, coord.row, coord.col, @colour_user_input)
     :wxGrid.setCellValue(grid, coord.row, coord.col, user_input)
+    :wxGrid.forceRefresh(grid)
   end
 end
