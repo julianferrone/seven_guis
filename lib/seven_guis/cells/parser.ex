@@ -6,6 +6,9 @@ defmodule SevenGuis.Cells.Parser do
 
   ## Examples
 
+      iex> parse_formula(~c"")
+      nil
+
       iex> parse_formula(~c"13")
       {:int, 13}
 
@@ -22,10 +25,14 @@ defmodule SevenGuis.Cells.Parser do
       {:expr, {:float, 8.9}}
 
       iex> parse_formula(~c"=B3")
-      {:expr, {:coord, {1, 2}}}
+      {:expr, {:coord, %{col: 1, row: 2}}}
+
+      iex> parse_formula(~c"=A3:B5")
+      {:expr, {:range, {:coord, %{col: 0, row: 2}}, {:coord, %{col: 1, row: 4}}}}
 
       iex> parse_formula(~c"=sum(6, A5)")
-      {:expr, {:appl, {:ident, ~c"sum"}, [int: 6, coord: {0, 4}]}}
+      {:expr, {:appl, {:ident, ~c"SUM"}, [int: 6, coord: %{col: 0, row: 4}]}}
+
   """
   @spec parse_formula(charlist()) :: AST.ast_node_formula()
   def parse_formula(~c""), do: nil
