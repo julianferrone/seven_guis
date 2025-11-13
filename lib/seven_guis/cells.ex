@@ -47,26 +47,14 @@ defmodule SevenGuis.Cells do
   end
 
   def handle_event(
-        {:wx, _, _, _,
-         {
-           :wxGrid,
-           :grid_select_cell,
-           row,
-           column,
-           _,
-           _,
-           _,
-           _,
-           _,
-           _
-         }},
+        wx(event: wxGrid(type: :grid_select_cell, row: row, col: col)),
         %{
           grid: grid,
           expr_graph: expr_graph,
           prev_selected: prev_selected
         } = state
       ) do
-    coord = AST.coord(row, column)
+    coord = AST.coord(row, col)
     # Change previously selected cell to show value
     display_cell_value(grid, expr_graph, prev_selected)
     # Display user input in currently selected cell
@@ -77,15 +65,15 @@ defmodule SevenGuis.Cells do
   end
 
   def handle_event(
-        {:wx, _, _, _, {:wxGrid, :grid_cell_changed, row, column, _, _, _, _, _, _}},
+        wx(event: wxGrid(type: :grid_cell_changed, row: row, col: col)),
         %{
           panel: panel,
           grid: grid,
           expr_graph: expr_graph
         } = state
       ) do
-    coord = AST.coord(row, column)
-    user_input = :wxGrid.getCellValue(grid, row, column)
+    coord = AST.coord(row, col)
+    user_input = :wxGrid.getCellValue(grid, row, col)
     # TODO: Add a check if update_cell returns an error.
     # If so, set the values of all the cells in the cycle to something like
     # "ERROR: Cyclical references <cells in cycle1>"
@@ -128,16 +116,6 @@ defmodule SevenGuis.Cells do
   # ---------------------- Error Dialog ----------------------
 
   def cyclical_error_dialog(parent, expr_graph, coord, user_input, cycles) do
-    # I wanted to use map_join but turns out it only works on
-    # String.t(), not charlists
-    # so instead we intersperse and then flatten the charlist
-    charlist_cycles =
-      Enum.map_intersperse(
-        cycles,
-        ~c" => ",
-        &AST.coord_to_charlist/1
-      )
-
     previous_user_input = ExprGraph.get_user_input(expr_graph, coord)
     charlist_coord = AST.coord_to_charlist(coord)
 
@@ -155,6 +133,7 @@ defmodule SevenGuis.Cells do
 
     Replacing #{charlist_coord} with previous input: \"#{previous_user_input}\"
     """
+
     dialog =
       :wxMessageDialog.new(
         parent,

@@ -144,7 +144,7 @@ defmodule SevenGuis.CircleDrawer do
   # ------------------- Asynchronous Events ------------------
 
   def handle_event(
-        {:wx, _, _, _, {:wxMouse, :left_down, x, y, _, _, _, _, _, _, _, _, _, _}},
+        wx(event: wxMouse(type: :left_down, x: x, y: y)),
         %{canvas: canvas, index: index, commands: commands, circles: circles} = state
       ) do
     create_circle = %{
@@ -168,7 +168,7 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(
-        {:wx, _, _, _, {:wxMouse, :right_down, x, y, _, _, _, _, _, _, _, _, _, _}},
+        wx(event: wxMouse(type: :right_down, x: x, y: y)),
         %{
           resize_dialog: resize_dialog,
           radius_slider: radius_slider,
@@ -201,7 +201,7 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(
-        {:wx, _, _, _, {:wxMouse, :motion, x, y, _, _, _, _, _, _, _, _, _, _}},
+        wx(event: wxMouse(type: :motion, x: x, y: y)),
         %{canvas: canvas, circles: circles, resize_dialog: resize_dialog} = state
       ) do
     state =
@@ -220,7 +220,7 @@ defmodule SevenGuis.CircleDrawer do
 
   # Redraw canvas when dialog slider is moved
   def handle_event(
-        {:wx, _, _, _, {:wxCommand, :command_slider_updated, _, radius, _}},
+        wx(event: wxCommand(type: :command_slider_updated, commandInt: radius)),
         %{canvas: canvas, highlighted: highlighted, circles: circles} = state
       ) do
     new_circle = %{
@@ -240,7 +240,7 @@ defmodule SevenGuis.CircleDrawer do
 
   # Actually update circles when dialog is closed
   def handle_event(
-        {:wx, _, resize_dialog, _, {:wxClose, :close_window}},
+        wx(obj: resize_dialog, event: wxClose(type: :close_window)),
         %{
           resize_dialog: resize_dialog,
           commands: commands,
@@ -267,7 +267,7 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(
-        {:wx, _, undo, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        wx(obj: undo, event: wxCommand(type: :command_button_clicked)),
         %{canvas: canvas, undo: undo, commands: commands, circles: circles} = state
       ) do
     {commands, circles} = undo(commands, circles)
@@ -277,7 +277,7 @@ defmodule SevenGuis.CircleDrawer do
   end
 
   def handle_event(
-        {:wx, _, redo, _, {:wxCommand, :command_button_clicked, _, _, _}},
+        wx(obj: redo, event: wxCommand(type: :command_button_clicked)),
         %{canvas: canvas, redo: redo, commands: commands, circles: circles} = state
       ) do
     {commands, circles} = redo(commands, circles)
@@ -294,7 +294,7 @@ defmodule SevenGuis.CircleDrawer do
   # ------------------- Synchronous Events -------------------
 
   def handle_sync_event(
-        {:wx, _, _, _, {:wxPaint, :paint}},
+        wx(event: wxPaint(type: :paint)),
         _ref,
         %{canvas: canvas, highlighted: highlighted, circles: circles}
       ) do

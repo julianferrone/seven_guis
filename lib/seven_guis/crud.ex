@@ -201,13 +201,7 @@ defmodule SevenGuis.Crud do
 
   # Handling events
   def handle_event(
-        {
-          :wx,
-          _,
-          _,
-          _,
-          {:wxCommand, :command_listbox_selected, _, index, _}
-        },
+        wx(event: wxCommand(type: :command_listbox_selected, commandInt: index)),
         state
       ) do
     state = %{state | selection_index: index}
@@ -215,13 +209,7 @@ defmodule SevenGuis.Crud do
   end
 
   def handle_event(
-        {
-          :wx,
-          create_id,
-          _,
-          _,
-          {:wxCommand, :command_button_clicked, _, _, _}
-        },
+        wx(id: create_id, event: wxCommand(type: :command_button_clicked)),
         %{ids: %{create: create_id}} = state
       ) do
     state = append_name(state)
@@ -229,13 +217,7 @@ defmodule SevenGuis.Crud do
   end
 
   def handle_event(
-        {
-          :wx,
-          update_id,
-          _,
-          _,
-          {:wxCommand, :command_button_clicked, _, _, _}
-        },
+        wx(id: update_id, event: wxCommand(type: :command_button_clicked)),
         %{ids: %{update: update_id}} = state
       ) do
     state = update_name(state)
@@ -243,13 +225,7 @@ defmodule SevenGuis.Crud do
   end
 
   def handle_event(
-        {
-          :wx,
-          delete_id,
-          _,
-          _,
-          {:wxCommand, :command_button_clicked, _, _, _}
-        },
+        wx(id: delete_id, event: wxCommand(type: :command_button_clicked)),
         %{ids: %{delete: delete_id}} = state
       ) do
     state = delete_name(state)
@@ -257,13 +233,14 @@ defmodule SevenGuis.Crud do
   end
 
   def handle_event(
-        {
-          :wx,
-          prefix_filter_id,
-          _,
-          _,
-          {:wxCommand, :command_text_updated, search_text, _, _}
-        },
+        wx(
+          id: prefix_filter_id,
+          event:
+            wxCommand(
+              type: :command_text_updated,
+              cmdString: search_text
+            )
+        ),
         %{ids: %{prefix_filter: prefix_filter_id}} = state
       ) do
     update_filtered_names(state.widgets.names, state.name_data, search_text)
@@ -368,6 +345,7 @@ defmodule SevenGuis.Crud do
   def contains(string, search_pattern) do
     string = :string.casefold(string)
     search_pattern = :string.casefold(search_pattern)
+
     case :string.find(string, search_pattern) do
       :nomatch -> false
       _ -> true

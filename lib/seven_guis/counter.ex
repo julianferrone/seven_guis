@@ -47,7 +47,10 @@ defmodule SevenGuis.Counter do
     {panel, state}
   end
 
-  def handle_event({:wx, _, _, _, {:wxCommand, :command_button_clicked, _, _, _}}, state) do
+  def handle_event(
+        wx(event: wxCommand(type: :command_button_clicked)),
+        state
+      ) do
     count = state.count + 1
     state = %{state | count: count}
     :wxStaticText.setLabel(state.text, Integer.to_charlist(count))

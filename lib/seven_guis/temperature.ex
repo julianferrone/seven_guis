@@ -101,14 +101,14 @@ defmodule SevenGuis.Temperature do
       celsius_id: celsius_id,
       celsius_input: celsius_input,
       fahrenheit_id: fahrenheit_id,
-      fahrenheit_input: fahrenheit_input,
+      fahrenheit_input: fahrenheit_input
     }
 
     {panel, state}
   end
 
   def handle_event(
-        {:wx, celsius_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
+        wx(id: celsius_id, event: wxCommand(type: :command_text_updated)),
         %{
           celsius_id: celsius_id,
           celsius_input: celsius_input,
@@ -140,7 +140,7 @@ defmodule SevenGuis.Temperature do
   end
 
   def handle_event(
-        {:wx, fahrenheit_id, _, _, {:wxCommand, :command_text_updated, _, _, _}},
+        wx(id: fahrenheit_id, event: wxCommand(type: :command_text_updated)),
         %{
           fahrenheit_id: fahrenheit_id,
           celsius_input: celsius_input,
