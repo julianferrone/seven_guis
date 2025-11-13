@@ -174,30 +174,40 @@ defmodule SevenGuis.Cells.ExprGraph do
         {:error, msg}
 
       defined ->
+        # Add index info for better error messages
         args =
-          Enum.with_index(args, fn element, index -> {index, element} end)
-          |> Enum.map(fn {index, arg} -> {index, evaluate(expr_graph, arg)} end)
+          Enum.with_index(args, fn arg, index -> %{index: index, arg: arg} end)
+          # |> IO.inspect(label: "args 1")
+          |> Enum.map(fn arg ->
+            value = evaluate(expr_graph, arg.arg)
+            Map.put(arg, :value, value)
+          end)
+          # |> IO.inspect(label: "args 2")
           # Because we use nil as a "no-information at coordinate"
           # we want to remove nils from the function arguments
-          |> Enum.reject(fn {_index, arg} -> arg == nil end)
-          # |> IO.inspect(label: "args")
+          |> Enum.reject(fn arg -> arg.value == nil end)
+          # |> IO.inspect(label: "args 3")
 
         error_args =
           Enum.filter(args, fn arg ->
-            case arg do
-              {_index, {:error, _msg}} -> true
+            case arg.value do
+              {:error, _msg} -> true
               _ok -> false
             end
           end)
-          # |> IO.inspect(label: "error_args")
+          |> IO.inspect(label: "error_args")
 
         case error_args do
           [] ->
+            # Strip out index info for calculation
+            args = Enum.map(args, fn arg -> arg.value end)
+
             try do
               defined.(args)
             rescue
               e ->
-                {:error, to_charlist(Exception.message(e))}
+                e = Exception.format(:error, e, __STACKTRACE__)
+                {:error, to_charlist(e)}
             end
 
           error_args ->
