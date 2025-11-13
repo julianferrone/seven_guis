@@ -490,7 +490,7 @@ yeccpars2_12_(__Stack0) ->
 yeccpars2_14_(__Stack0) ->
  [___3,___2,___1 | __Stack] = __Stack0,
  [begin
-                                                        {appl, remove_line(___1)}
+                                                        {appl, remove_line(___1), []}
   end | __Stack].
 
 -compile({inline,yeccpars2_15_/1}).

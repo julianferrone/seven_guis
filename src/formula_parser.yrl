@@ -8,7 +8,7 @@ number -> int   : remove_line('$1').
 arguments -> expr                 : ['$1'].
 arguments -> expr comma arguments : ['$1' | '$3'].
 
-application -> ident paren_open paren_close           : {appl, remove_line('$1')}.
+application -> ident paren_open paren_close           : {appl, remove_line('$1'), []}.
 application -> ident paren_open arguments paren_close : {appl, remove_line('$1'), '$3'}.
 
 expr -> coord       : remove_line('$1').
